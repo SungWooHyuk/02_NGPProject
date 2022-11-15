@@ -71,6 +71,68 @@ void UpdateObject() {
 	//여기로 수정할거임
 }
 
+void InitSettingObj() {
+	// -  server로 부터 받아와야 하는 객체들은 id값 모두 0으로 했음
+	// 플레이어 셋팅
+	playerStatus[0] = Player(0, 0, 0, 24, 28, 0);
+	playerStatus[1] = Player(0, 0, 0, 24, 28, 0);
+	playerStatus[2] = Player(0, 0, 0, 24, 28, 0);
+
+	// 바닥 위치 셋팅
+	floorStatus[0] = Object(0, 120, 170, 158, 30);
+	floorStatus[1] = Object(1, 100, 550, 158, 30);
+	floorStatus[2] = Object(2, 370, 280, 158, 30);
+	floorStatus[3] = Object(3, 360, 510, 158, 30);
+	floorStatus[4] = Object(4, 640, 390, 158, 30);
+	floorStatus[5] = Object(5, 600, 600, 158, 30);
+	floorStatus[6] = Object(6, 820, 280, 158, 30);
+	floorStatus[7] = Object(7, 850, 510, 158, 30);
+	floorStatus[8] = Object(8, 1030, 140, 158, 30);
+	floorStatus[9] = Object(9, 1050, 600, 158, 30);
+
+	// 첫 가시 위치 바뀔일 없음 
+	ThornStatus[0] = Object(0, 0, 630, 145, 55);
+	ThornStatus[1] = Object(1, 145, 630, 145, 55);
+	ThornStatus[2] = Object(2, 290, 630, 145, 55);
+	ThornStatus[3] = Object(3, 435, 630, 145, 55);
+	ThornStatus[4] = Object(4, 580, 630, 145, 55);
+	ThornStatus[5] = Object(5, 725, 630, 145, 55);
+	ThornStatus[6] = Object(6, 870, 630, 145, 55);
+	ThornStatus[7] = Object(7, 1015, 630, 145, 55);
+	ThornStatus[8] = Object(8, 1160, 630, 145, 55);
+
+	// 세로 불 초기값
+	FireStatus[0] = Object(0, 70, -30, 34, 51);
+	FireStatus[1] = Object(1, 380, -30, 34, 51);
+	FireStatus[2] = Object(2, 500, -30, 34, 51);
+	FireStatus[3] = Object(3, 710, -30, 34, 51);
+	FireStatus[4] = Object(4, 935, -30, 34, 51);
+
+	// 가로 불 초기값
+	W_FireStatus[0] = Object(0, -30, 47, 51, 34);
+	W_FireStatus[1] = Object(1, -30, 218, 51, 34);
+	W_FireStatus[2] = Object(2, -30, 317, 51, 34);
+	W_FireStatus[3] = Object(3, -30, 482, 51, 34);
+	W_FireStatus[4] = Object(4, -30, 573, 51, 34);
+
+	// 패턴의 초기 위치 셋팅
+	PatternStatus[0] = Object(0, -10, 0, 50, 50);
+	PatternStatus[1] = Object(0, -10, 0, 50, 50);
+	PatternStatus[2] = Object(0, -10, 0, 50, 50);
+	PatternStatus[3] = Object(0, -10, 0, 50, 50);
+	PatternStatus[4] = Object(0, -10, 0, 50, 50);
+
+	// 흑백 패턴 초기값 셋팅
+	gs_PatternStatus[0] = Object(0, 1200, 0, 50, 50);
+	gs_PatternStatus[1] = Object(1, 1170, 0, 50, 50);
+	gs_PatternStatus[2] = Object(2, 1140, 0, 50, 50);
+	gs_PatternStatus[3] = Object(3, 1110, 0, 50, 50);
+	gs_PatternStatus[4] = Object(4, 1080, 0, 50, 50);
+
+	// 문 초기값 셋팅 
+	doorstatus = Object(0, 723, 380, 1, 1);
+}
+
 //rendering 은 그대로 Draw로 그려주면 됨.
 void Rendering(HDC memdc1) {
 	if (isGameOver == false) // 게임 안끝나면 이렇게 그려준다
