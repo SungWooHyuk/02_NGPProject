@@ -67,9 +67,18 @@ void err_display(const char* msg)
 
 
 //데이터 받아와서 값 변경해주는 부분  
-void UpdateObject() {
-	//여기로 수정할거임
+void UpdateFire() {
+	//불 위치 업데이트
+	for (int i = 0; i < FIRECNT; ++i) {
+		W_FireStatus[i].x = update_info.W_FireTemp[i].x;
+		W_FireStatus[i].y = update_info.W_FireTemp[i].y;
+		FireStatus[i].x = update_info.H_FireTemp[i].x;
+		FireStatus[i].y = update_info.H_FireTemp[i].y;
+	}
 }
+
+
+
 
 void InitSettingObj() {
 	// -  server로 부터 받아와야 하는 객체들은 id값 모두 0으로 했음
@@ -343,25 +352,10 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 	while (1) {
 		retval = recv(sock, (char*)&update_info, sizeof(OBJECT_UPDATE_PACKET), 0); 
 		//불 위치 업데이트
-		for (int i = 0; i < FIRECNT; ++i) {
-			W_FireStatus[i].x = update_info.W_FireTemp[i].x;
-			W_FireStatus[i].y = update_info.W_FireTemp[i].y;
-			FireStatus[i].x = update_info.H_FireTemp[i].x; 
-			FireStatus[i].y = update_info.H_FireTemp[i].y;  
-		}
+		UpdateFire(); 
 
-		//패턴 위치 업데이트
-		for (int i = 0; i < PATTERNCNT; ++i) {
-			PatternStatus[i].x = update_info.PatternTemp[i].x;
-			PatternStatus[i].y = update_info.PatternTemp[i].y;
-		}
 		
-		//모든 플레이어 위치 업데이트
-		for (int i = 0; i < MAXCLIENT; ++i) {
-			playerStatus[i].x = update_info.PlayerTemp[i].x;
-			playerStatus[i].y = update_info.PlayerTemp[i].y;
-		}
-
+	
 		//시간
 		timelap = update_info.timelap;
 		//문 보이는지 여부
