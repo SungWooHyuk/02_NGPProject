@@ -86,6 +86,13 @@ void UpdatePattern() {
 	}
 }
 
+void UpdatePlayer() {
+	//모든 플레이어 위치 업데이트
+	for (int i = 0; i < MAXCLIENT; ++i) {
+		playerStatus[i].x = update_info.PlayerTemp[i].x;
+		playerStatus[i].y = update_info.PlayerTemp[i].y;
+	}
+}
 
 
 void InitSettingObj() {
@@ -364,6 +371,9 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 
 		//패턴 위치 업데이트
 		UpdatePattern();
+
+		//모든 플레이어 위치 업데이트
+		UpdatePlayer();
 	
 		//시간
 		timelap = update_info.timelap;
