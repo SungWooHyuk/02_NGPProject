@@ -2,6 +2,7 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS // 최신 VC++ 컴파일 시 경고 방지 
 #pragma comment(lib, "ws2_32") 
 #include <winsock2.h> 
+#include <WS2tcpip.h>
 #include <iostream>
 #include <random>
 #include <Windows.h> 
@@ -28,15 +29,15 @@ RECT W_FireBox[FIRECNT]; // 가로 불 충돌박스
 RECT ThornBox[THORNCNT]; // 가시 충돌박스
 RECT PatternBox[PATTERNCNT]; // 패턴 충돌박스 
 
+SOCKET sock;
+
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Name";
 LPCTSTR lpszWindowName = L"WP Game"; 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 DWORD WINAPI Thread_client(LPVOID arg); 
 HWND hWnd; // state에서 사용하려고 전역으로 뺌
-
-
-
+LOGIN_PACKET login_info;
 // 소켓 함수 오류 출력 후 종료
 void err_quit(const char* msg)
 {
@@ -74,9 +75,9 @@ void UpdateObject() {
 void InitSettingObj() {
 	// -  server로 부터 받아와야 하는 객체들은 id값 모두 0으로 했음
 	// 플레이어 셋팅
-	playerStatus[0] = Player(0, 0, 0, 24, 28, 0);
-	playerStatus[1] = Player(0, 0, 0, 24, 28, 0);
-	playerStatus[2] = Player(0, 0, 0, 24, 28, 0);
+	playerStatus[0] = Player(0, 0, 0, 24, 28, PLAYER::IDLE, false);
+	playerStatus[1] = Player(0, 0, 0, 24, 28, PLAYER::IDLE, false);
+	playerStatus[2] = Player(0, 0, 0, 24, 28, PLAYER::IDLE, false);
 
 	// 바닥 위치 셋팅
 	floorStatus[0] = Object(0, 120, 170, 158, 30);
@@ -131,6 +132,8 @@ void InitSettingObj() {
 
 	// 문 초기값 셋팅 
 	doorstatus = Object(0, 723, 380, 1, 1);
+	
+
 }
 
 //rendering 은 그대로 Draw로 그려주면 됨.
@@ -263,7 +266,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 		NULL, (HMENU)NULL,
 		hInstance, NULL);
 	ShowWindow(hWnd, nCmdShow);
-	//CreateThread(NULL, 0, Thread_client, NULL, 0, NULL);
+	CreateThread(NULL, 0, Thread_client, NULL, 0, NULL);
 	UpdateWindow(hWnd);
 
 	while (GetMessage(&Message, 0, 0, 0)) {
@@ -284,7 +287,7 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 		return 1;
 
 	// socket()
-	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
+	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == INVALID_SOCKET) err_quit("socket()");
 
 	// connect()
@@ -298,17 +301,24 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 
 
 	//플레이어정보 저장 
+
+
 	
 	while (1) {
-		retval = recv(sock, (char*)&login_info, sizeof(LOGIN_PACKET), 0);  
+		//
+		retval = recv(sock, (char*)&login_info, sizeof(LOGIN_PACKET), MSG_WAITALL);
+
 		CurrentPlayerid = login_info.player.id;
-		playerStatus[CurrentPlayerid].id = login_info.player.id;
+		playerStatus[CurrentPlayerid].id = CurrentPlayerid;
 		playerStatus[CurrentPlayerid].x = login_info.player.x;
-		playerStatus[CurrentPlayerid].y = login_info.player.y; 
+		playerStatus[CurrentPlayerid].y = login_info.player.y;
+
 		//3명 다 들어오고 play 시작
 		if (currentclientcnt == 3) { 
 			break;
 		}
+
+
 	}
 	//초기 값 받기 ->  여기서 초기의 패턴과 버튼의 값, 시간, 게임시작 여부 
 	retval = recv(sock, (char*)&Init_info, sizeof(INIT_PACKET), 0);
@@ -392,7 +402,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		Image(); // 이미지함수 불러서 초기화
 		
 		InitSettingObj();
-		 
+		
 		SetTimer(hWnd, 1, 10, NULL); // 1번 타이머 , 0.01초마다 갱신하겠다는거
 		break;
 

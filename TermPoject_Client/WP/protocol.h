@@ -1,8 +1,9 @@
-#pragma once
+#pragma pack (push, 1)
 
+struct Test {
+	int m_id;
+};
 struct LOGIN_PACKET {
-	/*short m_id;
-	short x, y;*/
 	Player player{};
 };
 
@@ -34,4 +35,6 @@ struct OBJECT_UPDATE_PACKET {
 	short gamemodestate; //0: 기존 배경,1:gameover창 띄우기,2:gameclear 창 띄우기
 
 };
+#pragma pack(pop)
+
 

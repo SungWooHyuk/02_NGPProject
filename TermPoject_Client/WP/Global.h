@@ -10,29 +10,7 @@
 #define PATTERNCNT 5 // 패턴모양 개수
 #define BUTTONCNT 2 // 버튼 개수
 #define MAXCLIENT 3//플레이어 수  
-
-
-namespace PLAYER {
-	enum Player_State {
-		IDLE,
-		LEFT,
-		RIGHT,
-		JUMP,
-		DEAD
-	};
-}
-
-namespace OBECJT
-{
-	enum Objet_State {
-		Fire,
-		Floor,
-		Door,
-		Pattern,
-		Player
-	};
-}
-
+ // State 상태 만들어서 옮김
 bool keyLayout[256]{}; // 키보드 레이아웃인데 이거 사실 없어도되긴해,,,, 내가 코드를 너무 못짰다
 bool isJump = false; // 점프 체크
 bool isGameOver = false; // gameover 화면 보여주기위한것 

@@ -2,11 +2,11 @@
 class Object {
 public:
 	Object() = default;
-	Object(int id, int x, int y, int xs, int ys);
+	Object(short id, short x, short y, short xs, short ys);
 
-	int id{}; // id°ª
-	int x{}; // xÁÂÇ¥
-	int y{}; // yÁÂÇ¥
-	int x_size{}; // x»çÀÌÁî
-	int y_size{}; // y»çÀÌÁî 
+	short id{}; // id°ª
+	short x{}; // xÁÂÇ¥
+	short y{}; // yÁÂÇ¥
+	short x_size{}; // x»çÀÌÁî
+	short y_size{}; // y»çÀÌÁî 
 };

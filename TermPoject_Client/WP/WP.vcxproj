@@ -139,8 +139,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Floor.cpp" />
-    <ClCompile Include="H_Fire.cpp" />
     <ClCompile Include="framework.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="Pattern.cpp" />
@@ -158,6 +156,7 @@
     <ClInclude Include="Pattern.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="protocol.h" />
+    <ClInclude Include="State.h" />
     <ClInclude Include="Thron.h" />
     <ClInclude Include="W_Fire.h" />
   </ItemGroup>

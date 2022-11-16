@@ -4,10 +4,10 @@ class Player :public Object
 {
 public:
 	Player(); 
-	Player(int id, int x, int y, int xs, int ys, int state); 
-	int getId();
-private:
-	int state_type{}; // 상태에 대한 type  
+	Player(short id, short x, short y, short xs, short ys, short state);
+	short getId();
+public:
+	short state_type{}; // 상태에 대한 type  
 };
 
 
