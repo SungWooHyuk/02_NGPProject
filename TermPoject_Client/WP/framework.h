@@ -3,11 +3,6 @@
 #include "State.h" // 추가
 #include "Image.h" // 이미지 로드 헤더
 #include "Object.h" 
-#include "H_Fire.h"  
-#include "W_Fire.h"
-#include "Floor.h"
-#include "Thron.h" 
-#include "Pattern.h"
 #include "Player.h" 
 #include "protocol.h" 
 

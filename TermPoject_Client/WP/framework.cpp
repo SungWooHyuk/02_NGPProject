@@ -12,7 +12,6 @@
 #define SERVERPORT 9000
 #define BUFSIZE   512  
 
-
 using namespace std;
 
 random_device rd; // 시드값
@@ -166,7 +165,8 @@ void Rendering(HDC memdc1) {
 	
 		//player그려주기
 		for (int i = 0; i < MAXCLIENT; ++i) {
-			PlayerImg.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); // 플레이어 
+			if(playerStatus[i].visible)
+				PlayerImg.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); // 플레이어 
 		}
 		
 
@@ -312,7 +312,9 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 		playerStatus[CurrentPlayerid].id = CurrentPlayerid;
 		playerStatus[CurrentPlayerid].x = login_info.player.x;
 		playerStatus[CurrentPlayerid].y = login_info.player.y;
+		playerStatus[CurrentPlayerid].visible = login_info.player.visible;
 
+		cout << login_info.player.visible << endl;
 		//3명 다 들어오고 play 시작
 		if (currentclientcnt == 3) { 
 			break;

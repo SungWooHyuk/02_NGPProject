@@ -1,8 +1,5 @@
 #pragma pack (push, 1)
 
-struct Test {
-	int m_id;
-};
 struct LOGIN_PACKET {
 	Player player{};
 };
