@@ -26,6 +26,10 @@ CImage CloseDoor;
 //gameover
 CImage GameOver;
 
+//¹öÆ° 
+CImage ButtonUP;
+CImage ButtonDown;
+
 void Image()
 {
 	BackGround.Load(L"Image/background.png");
@@ -49,4 +53,7 @@ void Image()
 
 	CloseDoor.Load(L"Image/closeDoor.png");
 	GameOver.Load(L"Image/GameOver.png");
+
+	ButtonUP.Load(L"Image/buttonUp.png");
+	ButtonDown.Load(L"Image/buttonDown.png");
 }

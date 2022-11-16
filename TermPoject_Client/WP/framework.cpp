@@ -67,8 +67,35 @@ void err_display(const char* msg)
 
 
 //데이터 받아와서 값 변경해주는 부분  
-void UpdateObject() {
-	//여기로 수정할거임
+void UpdateFire(OBJECT_UPDATE_PACKET& update_info) {
+	//불 위치 업데이트
+	for (int i = 0; i < FIRECNT; ++i) {
+		W_FireStatus[i].x = update_info.W_FireTemp[i].x;
+		W_FireStatus[i].y = update_info.W_FireTemp[i].y;
+		FireStatus[i].x = update_info.H_FireTemp[i].x;
+		FireStatus[i].y = update_info.H_FireTemp[i].y;
+	}
+}
+
+
+void UpdatePattern(OBJECT_UPDATE_PACKET& update_info) {
+	//패턴 위치 업데이트
+	for (int i = 0; i < PATTERNCNT; ++i) {
+		PatternStatus[i].x = update_info.PatternTemp[i].x;
+		PatternStatus[i].y = update_info.PatternTemp[i].y;
+	}
+}
+
+void UpdatePlayer(OBJECT_UPDATE_PACKET& update_info) {
+	//모든 플레이어 위치 업데이트
+	for (int i = 0; i < MAXCLIENT; ++i) {
+		playerStatus[i].x = update_info.PlayerTemp[i].x;
+		playerStatus[i].y = update_info.PlayerTemp[i].y;
+	}
+}
+
+void UpdateTime(OBJECT_UPDATE_PACKET& update_info) {
+	timelap = update_info.timelap;
 }
 
 void InitSettingObj() {
@@ -162,13 +189,13 @@ void Rendering(HDC memdc1) {
 		else
 			CloseDoor.Draw(memdc1, doorstatus.x, doorstatus.y, 1, 1); // 처음에는 문 안보여주기  
 
-	
+
 		//player그려주기
 		for (int i = 0; i < MAXCLIENT; ++i) {
-			if(playerStatus[i].visible)
+			if (playerStatus[i].visible)
 				PlayerImg.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); // 플레이어 
 		}
-		
+
 
 		//발판 그려주기
 		for (int i = 0; i < FLOORCNT; ++i)
@@ -177,14 +204,14 @@ void Rendering(HDC memdc1) {
 		//가시 그려주기
 		for (int i = 0; i < THORNCNT; ++i)
 			ThronImg.Draw(memdc1, ThornStatus[i].x, ThornStatus[i].y, ThornStatus[i].x_size, ThornStatus[i].y_size);
-			
+
 		//불 그려주기
 		for (int i = 0; i < FIRECNT; ++i)
 			Fire.Draw(memdc1, FireStatus[i].x, FireStatus[i].y, FireStatus[i].x_size, FireStatus[i].y_size);
-		
+
 		for (int i = 0; i < FIRECNT; ++i)
 			Fire2.Draw(memdc1, W_FireStatus[i].x, W_FireStatus[i].y, W_FireStatus[i].x_size, W_FireStatus[i].y_size);
-			
+
 
 		// 패턴 흑백으로 미리 그려주기
 		for (int i = 0; i < PATTERNCNT; ++i)
@@ -211,7 +238,7 @@ void Rendering(HDC memdc1) {
 		}
 
 		// 패턴 게임상 그려주기 
-		
+
 		for (int i = 0; i < PATTERNCNT; ++i)
 		{
 			switch (i)
@@ -233,6 +260,12 @@ void Rendering(HDC memdc1) {
 				break;
 			}
 		}
+
+		//버튼 한개로 가정하고 수정함 
+		if (isButtonDown)
+			ButtonUP.Draw(memdc1, ButtonStatus[0].x, ButtonStatus[0].y, ButtonStatus[0].x_size, ButtonStatus[0].y_size);
+		else
+			ButtonDown.Draw(memdc1, ButtonStatus[0].x, ButtonStatus[0].y, ButtonStatus[0].x_size, ButtonStatus[0].y_size);
 	}
 	else
 	{
@@ -343,29 +376,20 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 	while (1) {
 		retval = recv(sock, (char*)&update_info, sizeof(OBJECT_UPDATE_PACKET), 0); 
 		//불 위치 업데이트
-		for (int i = 0; i < FIRECNT; ++i) {
-			W_FireStatus[i].x = update_info.W_FireTemp[i].x;
-			W_FireStatus[i].y = update_info.W_FireTemp[i].y;
-			FireStatus[i].x = update_info.H_FireTemp[i].x; 
-			FireStatus[i].y = update_info.H_FireTemp[i].y;  
-		}
+		UpdateFire(update_info);
 
 		//패턴 위치 업데이트
-		for (int i = 0; i < PATTERNCNT; ++i) {
-			PatternStatus[i].x = update_info.PatternTemp[i].x;
-			PatternStatus[i].y = update_info.PatternTemp[i].y;
-		}
-		
+		UpdatePattern(update_info);
+
 		//모든 플레이어 위치 업데이트
-		for (int i = 0; i < MAXCLIENT; ++i) {
-			playerStatus[i].x = update_info.PlayerTemp[i].x;
-			playerStatus[i].y = update_info.PlayerTemp[i].y;
-		}
+		UpdatePlayer(update_info);
 
 		//시간
-		timelap = update_info.timelap;
+		UpdateTime(update_info);
+
 		//문 보이는지 여부
 		visible = update_info.visible;
+
 		//게임모드 상태 
 		gamemodestate = update_info.gamemodestate;
 	}
