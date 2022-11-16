@@ -67,7 +67,7 @@ void err_display(const char* msg)
 
 
 //데이터 받아와서 값 변경해주는 부분  
-void UpdateFire() {
+void UpdateFire(OBJECT_UPDATE_PACKET& update_info) { 
 	//불 위치 업데이트
 	for (int i = 0; i < FIRECNT; ++i) {
 		W_FireStatus[i].x = update_info.W_FireTemp[i].x;
@@ -78,7 +78,7 @@ void UpdateFire() {
 }
 
 
-void UpdatePattern() {
+void UpdatePattern(OBJECT_UPDATE_PACKET& update_info) {
 	//패턴 위치 업데이트
 	for (int i = 0; i < PATTERNCNT; ++i) {
 		PatternStatus[i].x = update_info.PatternTemp[i].x;
@@ -86,14 +86,17 @@ void UpdatePattern() {
 	}
 }
 
-void UpdatePlayer() {
+void UpdatePlayer(OBJECT_UPDATE_PACKET& update_info) {
 	//모든 플레이어 위치 업데이트
 	for (int i = 0; i < MAXCLIENT; ++i) {
 		playerStatus[i].x = update_info.PlayerTemp[i].x;
 		playerStatus[i].y = update_info.PlayerTemp[i].y;
 	}
 }
-
+ 
+void UpdateTime(OBJECT_UPDATE_PACKET& update_info) {
+	timelap = update_info.timelap; 
+}
 
 void InitSettingObj() {
 	// -  server로 부터 받아와야 하는 객체들은 id값 모두 0으로 했음
@@ -367,16 +370,17 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 	while (1) {
 		retval = recv(sock, (char*)&update_info, sizeof(OBJECT_UPDATE_PACKET), 0); 
 		//불 위치 업데이트
-		UpdateFire(); 
+		UpdateFire(update_info);
 
 		//패턴 위치 업데이트
-		UpdatePattern();
+		UpdatePattern(update_info);
 
 		//모든 플레이어 위치 업데이트
-		UpdatePlayer();
+		UpdatePlayer(update_info);
 	
 		//시간
-		timelap = update_info.timelap;
+		UpdateTime(update_info);
+		
 		//문 보이는지 여부
 		visible = update_info.visible;
 		//게임모드 상태 
