@@ -5,6 +5,7 @@
 
 using namespace std;
 
+<<<<<<< Updated upstream
 random_device rd; // 시드값
 default_random_engine dre{ rd() }; // 초기 조건은 추적 불가능하다.
 uniform_int_distribution<int> x_uid{ 50, 1200 }; // 불 x축 랜덤값 
@@ -59,6 +60,78 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 	while (GetMessage(&Message, 0, 0, 0)) {
 		TranslateMessage(&Message);
 		DispatchMessage(&Message);
+=======
+#define SERVERPORT 9000
+#define BUFSIZE 512
+#define MAXCLIENT 3
+
+HANDLE E_hThread[3]; // 이벤트 
+HANDLE Ec_hThread[3]; // 이벤트 체크
+HANDLE MyUpdateThread; // 이벤트 업데이트
+
+HANDLE hThread; // 쓰레드 생성할 때 사용할 핸들
+DWORD Threadid[3]; // 생성할 때 생기는 id값 담기
+int p2;
+int cnt{};
+int Client_count = 0;
+bool logincheck[3]{ false, false, false };
+bool Initcheck = false;
+LOGIN_PACKET login_info[3];
+SOCKET client_sock[3];
+INIT_PACKET init;
+OBJECT_UPDATE_PACKET update_packet;
+DWORD WINAPI Client_Thread(LPVOID arg);
+DWORD WINAPI Update_Thread(LPVOID arg);
+
+DWORD WINAPI Client_Thread(LPVOID arg)
+{
+	int m_id = Client_count;
+	Client_count += 1;
+
+	client_sock[m_id] = (SOCKET)arg;
+	SOCKADDR_IN clientaddr;
+	int addrlen;
+	//char buf[BUFSIZE];
+	addrlen = sizeof(clientaddr);
+	getpeername(client_sock[m_id], (SOCKADDR*)&clientaddr, &addrlen);
+
+	if (logincheck[m_id] == false)
+	{
+		login_info[m_id].player.id = m_id;
+		login_info[m_id].player.state_type = PLAYER::IDLE;
+		login_info[m_id].player.x = 640 + (Client_count*20);
+		login_info[m_id].player.y = 360;
+		login_info[m_id].player.visible = true;
+
+		//send(client_sock, (char*)&login_info[m_id], sizeof(LOGIN_PACKET), 0);
+		logincheck[m_id] = true;
+		
+	}
+
+	if (Client_count == 1)
+	{
+		send(client_sock[m_id], (char*)&login_info[m_id], sizeof(LOGIN_PACKET), 0);
+	}
+	else if (Client_count == 2)
+	{
+		for (int i = 0; i < 2; ++i)
+		{
+			for (int j = 0; j < 2; ++j)
+			{
+				send(client_sock[i], (char*)&login_info[j], sizeof(LOGIN_PACKET), 0);
+			}
+		}
+	}
+	else if (Client_count == 3)
+	{
+		for (int i = 0; i < Client_count; ++i)
+		{
+			for (int j = 0; j < Client_count; ++j)
+			{
+				send(client_sock[i], (char*)&login_info[j], sizeof(LOGIN_PACKET), 0);
+			}
+		}
+>>>>>>> Stashed changes
 	}
 
 	//초기 셋팅 
@@ -69,8 +142,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 	LOGIN_PACKET l_P{};
 	Player testp = getPlayerInitData(l_P); 
 
+<<<<<<< Updated upstream
 	OBJECT_UPDATE_PACKET o_p{};
 	test = getObjectData(o_p);
+=======
+	while (1) {
+		WaitForSingleObject(Ec_hThread[m_id], INFINITE);
+>>>>>>> Stashed changes
 
 	KEYINPUT_PAKCET p_p{}; 
 	testp = getPlayerData(p_p);   
@@ -87,6 +165,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+<<<<<<< Updated upstream
 	PAINTSTRUCT ps;
 	static HDC hdc, memdc1, memdc2;
 	static HBITMAP hBitmap1, hBitmap2;
@@ -286,6 +365,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		EndPaint(hWnd, &ps);
 	}
 		break;
+=======
+	DWORD retval;
+	while (1) {
+
+		retval = WaitForMultipleObjects(3, E_hThread, TRUE, INFINITE);
+
+		if (Initcheck == false)
+		{
+			init.gameStart = true;
+			init.timelap = 30;
+			for (int i = 0; i < MAXCLIENT; ++i)
+			{
+				send(client_sock[i], (char*)&init, sizeof(init), 0);
+			}
+			Initcheck = true;
+		}
+		
+		update_packet.gamemodestate = 0;
+		update_packet.timelap -= 1;
+
+		for (int i = 0; i < MAXCLIENT; ++i)
+		{
+			send(client_sock[i], (char*)&update_packet, sizeof(update_packet), 0);
+		}
+
+		//send()
+		//Update();
+		//isCollision();
+		//send;
+
+		
+>>>>>>> Stashed changes
 
 	case WM_DESTROY: // 파괴될때 불려지는곳
 		KillTimer(hWnd, 1);

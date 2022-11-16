@@ -34,9 +34,14 @@ LPCTSTR lpszWindowName = L"WP Game";
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 DWORD WINAPI Thread_client(LPVOID arg); 
 HWND hWnd; // state에서 사용하려고 전역으로 뺌
+<<<<<<< Updated upstream
 
 
 
+=======
+LOGIN_PACKET login_info;
+INIT_PACKET  Init_info;		//3명 접속 후 패턴과 버튼의 초기 데이터 
+>>>>>>> Stashed changes
 // 소켓 함수 오류 출력 후 종료
 void err_quit(const char* msg)
 {
@@ -304,15 +309,23 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 		CurrentPlayerid = login_info.player.id;
 		playerStatus[CurrentPlayerid].id = login_info.player.id;
 		playerStatus[CurrentPlayerid].x = login_info.player.x;
+<<<<<<< Updated upstream
 		playerStatus[CurrentPlayerid].y = login_info.player.y; 
+=======
+		playerStatus[CurrentPlayerid].y = login_info.player.y;
+		playerStatus[CurrentPlayerid].visible = login_info.player.visible;
+
+		cout << CurrentPlayerid << endl;
+>>>>>>> Stashed changes
 		//3명 다 들어오고 play 시작
-		if (currentclientcnt == 3) { 
+		if (CurrentPlayerid == 2) {
 			break;
 		}
 	}
 	//초기 값 받기 ->  여기서 초기의 패턴과 버튼의 값, 시간, 게임시작 여부 
 	retval = recv(sock, (char*)&Init_info, sizeof(INIT_PACKET), 0);
 	//패턴의 초기 위치 셋팅
+
 	PatternStatus[0] = Init_info.pattern_temp[0]; 
 	PatternStatus[1] = Init_info.pattern_temp[1];
 	PatternStatus[2] = Init_info.pattern_temp[2];
@@ -323,40 +336,47 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 	ButtonStatus[0] = Init_info.button[0];
 	ButtonStatus[1] = Init_info.button[1];
 
+	timelap = Init_info.timelap;
+
 	//gamemodestate를 처음에 -1로 뒀다가 여기서 0으로 바뀌면 시작하도록 하기 
 	//gamemodestate = Init_info.gameStart; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어
 	//timelap = Init_info.timelap; 
 									
-	//update값 받기 
-	while (1) {
-		retval = recv(sock, (char*)&update_info, sizeof(OBJECT_UPDATE_PACKET), 0); 
-		//불 위치 업데이트
-		for (int i = 0; i < FIRECNT; ++i) {
-			W_FireStatus[i].x = update_info.W_FireTemp[i].x;
-			W_FireStatus[i].y = update_info.W_FireTemp[i].y;
-			FireStatus[i].x = update_info.H_FireTemp[i].x; 
-			FireStatus[i].y = update_info.H_FireTemp[i].y;  
-		}
+	//update값 받기
+	if (Init_info.gameStart)
+	{
+		while (1) {
+			retval = recv(sock, (char*)&update_info, sizeof(OBJECT_UPDATE_PACKET), 0);
+			//불 위치 업데이트
+			for (int i = 0; i < FIRECNT; ++i) {
+				W_FireStatus[i].x = update_info.W_FireTemp[i].x;
+				W_FireStatus[i].y = update_info.W_FireTemp[i].y;
+				FireStatus[i].x = update_info.H_FireTemp[i].x;
+				FireStatus[i].y = update_info.H_FireTemp[i].y;
+			}
 
-		//패턴 위치 업데이트
-		for (int i = 0; i < PATTERNCNT; ++i) {
-			PatternStatus[i].x = update_info.PatternTemp[i].x;
-			PatternStatus[i].y = update_info.PatternTemp[i].y;
-		}
-		
-		//모든 플레이어 위치 업데이트
-		for (int i = 0; i < MAXCLIENT; ++i) {
-			playerStatus[i].x = update_info.PlayerTemp[i].x;
-			playerStatus[i].y = update_info.PlayerTemp[i].y;
-		}
+			//패턴 위치 업데이트
+			for (int i = 0; i < PATTERNCNT; ++i) {
+				PatternStatus[i].x = update_info.PatternTemp[i].x;
+				PatternStatus[i].y = update_info.PatternTemp[i].y;
+			}
 
-		//시간
-		timelap = update_info.timelap;
-		//문 보이는지 여부
-		visible = update_info.visible;
-		//게임모드 상태 
-		gamemodestate = update_info.gamemodestate;
+			//모든 플레이어 위치 업데이트
+			for (int i = 0; i < MAXCLIENT; ++i) {
+				playerStatus[i].x = update_info.PlayerTemp[i].x;
+				playerStatus[i].y = update_info.PlayerTemp[i].y;
+			}
+
+			//시간
+			timelap = update_info.timelap;
+			//문 보이는지 여부
+			visible = update_info.visible;
+			//게임모드 상태 
+			gamemodestate = update_info.gamemodestate;
+
+		}
 	}
+	
 
 	closesocket(sock);
 
