@@ -78,6 +78,14 @@ void UpdateFire() {
 }
 
 
+void UpdatePattern() {
+	//패턴 위치 업데이트
+	for (int i = 0; i < PATTERNCNT; ++i) {
+		PatternStatus[i].x = update_info.PatternTemp[i].x;
+		PatternStatus[i].y = update_info.PatternTemp[i].y;
+	}
+}
+
 
 
 void InitSettingObj() {
@@ -354,7 +362,8 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 		//불 위치 업데이트
 		UpdateFire(); 
 
-		
+		//패턴 위치 업데이트
+		UpdatePattern();
 	
 		//시간
 		timelap = update_info.timelap;
