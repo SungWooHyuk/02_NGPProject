@@ -71,7 +71,7 @@ void err_display(const char* msg)
 void UpdateFire(OBJECT_UPDATE_PACKET& update_info) { 
 	//불 위치 업데이트
 	for (int i = 0; i < FIRECNT; ++i) {
-		W_FireStatus[i].x = update_info.W_FireTemp[i].x;
+		W_FireStatus[i].x = update_info.W_FireTemp[i].x;   
 		W_FireStatus[i].y = update_info.W_FireTemp[i].y;
 		FireStatus[i].x = update_info.H_FireTemp[i].x;
 		FireStatus[i].y = update_info.H_FireTemp[i].y;
