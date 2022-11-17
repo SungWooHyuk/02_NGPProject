@@ -32,11 +32,12 @@ SOCKET sock;
 
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Name";
-LPCTSTR lpszWindowName = L"WP Game"; 
+LPCTSTR lpszWindowName = L"WP Game";
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
-DWORD WINAPI Thread_client(LPVOID arg); 
+DWORD WINAPI Thread_client(LPVOID arg);
 HWND hWnd; // state에서 사용하려고 전역으로 뺌
 LOGIN_PACKET login_info;
+INIT_PACKET  Init_info;
 // 소켓 함수 오류 출력 후 종료
 void err_quit(const char* msg)
 {
@@ -158,7 +159,7 @@ void InitSettingObj() {
 
 	// 문 초기값 셋팅 
 	doorstatus = Object(0, 723, 380, 1, 1);
-	
+
 
 }
 
@@ -336,7 +337,7 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 	//플레이어정보 저장 
 
 
-	
+
 	while (1) {
 		//
 		retval = recv(sock, (char*)&login_info, sizeof(LOGIN_PACKET), MSG_WAITALL);
@@ -346,10 +347,8 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 		playerStatus[CurrentPlayerid].x = login_info.player.x;
 		playerStatus[CurrentPlayerid].y = login_info.player.y;
 		playerStatus[CurrentPlayerid].visible = login_info.player.visible;
-
-		cout << login_info.player.visible << endl;
 		//3명 다 들어오고 play 시작
-		if (currentclientcnt == 3) { 
+		if (currentclientcnt == 2) {
 			break;
 		}
 
@@ -358,20 +357,19 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 	//초기 값 받기 ->  여기서 초기의 패턴과 버튼의 값, 시간, 게임시작 여부 
 	retval = recv(sock, (char*)&Init_info, sizeof(INIT_PACKET), 0);
 	//패턴의 초기 위치 셋팅
-	PatternStatus[0] = Init_info.pattern_temp[0]; 
+	PatternStatus[0] = Init_info.pattern_temp[0];
 	PatternStatus[1] = Init_info.pattern_temp[1];
 	PatternStatus[2] = Init_info.pattern_temp[2];
 	PatternStatus[3] = Init_info.pattern_temp[3];
-	PatternStatus[4] = Init_info.pattern_temp[4]; 
+	PatternStatus[4] = Init_info.pattern_temp[4];
 
 	//버튼의 초기 위치 셋팅
 	ButtonStatus[0] = Init_info.button[0];
 	ButtonStatus[1] = Init_info.button[1];
-
+	timelap = Init_info.timelap;
 	//gamemodestate를 처음에 -1로 뒀다가 여기서 0으로 바뀌면 시작하도록 하기 
 	//gamemodestate = Init_info.gameStart; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어
-	//timelap = Init_info.timelap; 
-									
+
 	//update값 받기 
 	while (1) {
 		retval = recv(sock, (char*)&update_info, sizeof(OBJECT_UPDATE_PACKET), 0); 
@@ -393,7 +391,6 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 		//게임모드 상태 
 		gamemodestate = update_info.gamemodestate;
 	}
-
 	closesocket(sock);
 
 	// 윈속 종료
@@ -409,10 +406,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static HBRUSH hBrush, oldBrush;
 
 	switch (uMsg) {
-	case WM_TIMER: 
+	case WM_TIMER:
 		switch (wParam)
 		{
-		case 1: 
+		case 1:
 			InvalidateRect(hWnd, NULL, false); // 화면 갈아주기
 			return 0;
 			break;
@@ -426,9 +423,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		_tfreopen(_T("CONERR$"), _T("w"), stderr);
 
 		Image(); // 이미지함수 불러서 초기화
-		
+
 		InitSettingObj();
-		
+
 		SetTimer(hWnd, 1, 10, NULL); // 1번 타이머 , 0.01초마다 갱신하겠다는거
 		break;
 
@@ -443,7 +440,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			keyinput_info.state_type = 3;
 		}
 		else if (wParam == VK_SPACE) { // 더블점프가능하게
-			if (jumpCnt  < 2){  //점프 두번까지 가능 
+			if (jumpCnt < 2) {  //점프 두번까지 가능 
 				isJump = true;
 				jumpCnt++;
 			}
@@ -476,7 +473,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		hBitmap1 = CreateCompatibleBitmap(hdc, 1280, 720);
 		HBITMAP hOldBitmap = (HBITMAP)SelectObject(memdc1, hBitmap1);
 
-		Rendering(memdc1); 
+		Rendering(memdc1);
 
 		BitBlt(hdc, 0, 0, 1280, 720, memdc1, 0, 0, SRCCOPY);
 
@@ -487,7 +484,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		EndPaint(hWnd, &ps);
 	}
-		break;
+	break;
 
 	case WM_DESTROY: // 파괴될때 불려지는곳
 		KillTimer(hWnd, 1);
