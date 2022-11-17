@@ -1,12 +1,8 @@
 #pragma once 
 #include "Global.h" 
+#include "State.h" // 추가
 #include "Image.h" // 이미지 로드 헤더
 #include "Object.h" 
-#include "H_Fire.h"  
-#include "W_Fire.h"
-#include "Floor.h"
-#include "Thron.h" 
-#include "Pattern.h"
 #include "Player.h" 
 #include "protocol.h" 
 
@@ -18,10 +14,8 @@ Object ThornStatus[THORNCNT]; // 가시 상태
 Object PatternStatus[PATTERNCNT]; // 패턴 상태 
 Object gs_PatternStatus[PATTERNCNT]; // 흑백 패턴 상태   
 Object ButtonStatus[BUTTONCNT];
-Object doorstatus; //문의 상태      
+Object doorstatus; //문의 상태   
 
-<<<<<<< Updated upstream
-LOGIN_PACKET login_info;   
 INIT_PACKET  Init_info;		//3명 접속 후 패턴과 버튼의 초기 데이터 
 =======
 

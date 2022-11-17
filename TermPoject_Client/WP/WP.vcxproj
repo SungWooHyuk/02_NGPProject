@@ -139,27 +139,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Floor.cpp" />
-    <ClCompile Include="H_Fire.cpp" />
     <ClCompile Include="framework.cpp" />
-    <ClCompile Include="Object.cpp" />
-    <ClCompile Include="Pattern.cpp" />
-    <ClCompile Include="Player.cpp" />
-    <ClCompile Include="Thron.cpp" />
-    <ClCompile Include="W_Fire.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Floor.h" />
-    <ClInclude Include="H_Fire.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Image.h" />
     <ClInclude Include="Global.h" />
     <ClInclude Include="Object.h" />
-    <ClInclude Include="Pattern.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="protocol.h" />
-    <ClInclude Include="Thron.h" />
-    <ClInclude Include="W_Fire.h" />
+    <ClInclude Include="State.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
