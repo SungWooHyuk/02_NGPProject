@@ -32,11 +32,12 @@ SOCKET sock;
 
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Name";
-LPCTSTR lpszWindowName = L"WP Game"; 
+LPCTSTR lpszWindowName = L"WP Game";
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
-DWORD WINAPI Thread_client(LPVOID arg); 
+DWORD WINAPI Thread_client(LPVOID arg);
 HWND hWnd; // state에서 사용하려고 전역으로 뺌
 LOGIN_PACKET login_info;
+INIT_PACKET  Init_info;
 // 소켓 함수 오류 출력 후 종료
 void err_quit(const char* msg)
 {
@@ -67,8 +68,56 @@ void err_display(const char* msg)
 
 
 //데이터 받아와서 값 변경해주는 부분  
-void UpdateObject() {
-	//여기로 수정할거임
+void UpdateFire(OBJECT_UPDATE_PACKET& update_info) { 
+	//불 위치 업데이트
+	for (int i = 0; i < FIRECNT; ++i) {
+		W_FireStatus[i].x = update_info.W_FireTemp[i].x;   
+		W_FireStatus[i].y = update_info.W_FireTemp[i].y;
+		FireStatus[i].x = update_info.H_FireTemp[i].x;
+		FireStatus[i].y = update_info.H_FireTemp[i].y;
+	}
+}
+
+
+void UpdatePattern(OBJECT_UPDATE_PACKET& update_info) {
+	//패턴 위치 업데이트
+	for (int i = 0; i < PATTERNCNT; ++i) {
+		PatternStatus[i].x = update_info.PatternTemp[i].x;
+		PatternStatus[i].y = update_info.PatternTemp[i].y;
+	}
+}
+
+void UpdatePlayer(OBJECT_UPDATE_PACKET& update_info) {
+	//모든 플레이어 위치 업데이트
+	for (int i = 0; i < MAXCLIENT; ++i) {
+		playerStatus[i].x = update_info.PlayerTemp[i].x;
+		playerStatus[i].y = update_info.PlayerTemp[i].y;
+	}
+}
+ 
+void UpdateTime(OBJECT_UPDATE_PACKET& update_info) {
+	timelap = update_info.timelap; 
+}
+
+
+void UpdatePattern(OBJECT_UPDATE_PACKET& update_info) {
+	//패턴 위치 업데이트
+	for (int i = 0; i < PATTERNCNT; ++i) {
+		PatternStatus[i].x = update_info.PatternTemp[i].x;
+		PatternStatus[i].y = update_info.PatternTemp[i].y;
+	}
+}
+
+void UpdatePlayer(OBJECT_UPDATE_PACKET& update_info) {
+	//모든 플레이어 위치 업데이트
+	for (int i = 0; i < MAXCLIENT; ++i) {
+		playerStatus[i].x = update_info.PlayerTemp[i].x;
+		playerStatus[i].y = update_info.PlayerTemp[i].y;
+	}
+}
+
+void UpdateTime(OBJECT_UPDATE_PACKET& update_info) {
+	timelap = update_info.timelap;
 }
 
 void InitSettingObj() {
@@ -131,7 +180,7 @@ void InitSettingObj() {
 
 	// 문 초기값 셋팅 
 	doorstatus = Object(0, 723, 380, 1, 1);
-	
+
 
 }
 
@@ -162,13 +211,13 @@ void Rendering(HDC memdc1) {
 		else
 			CloseDoor.Draw(memdc1, doorstatus.x, doorstatus.y, 1, 1); // 처음에는 문 안보여주기  
 
-	
+
 		//player그려주기
 		for (int i = 0; i < MAXCLIENT; ++i) {
-			if(playerStatus[i].visible)
+			if (playerStatus[i].visible)
 				PlayerImg.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); // 플레이어 
 		}
-		
+
 
 		//발판 그려주기
 		for (int i = 0; i < FLOORCNT; ++i)
@@ -177,14 +226,14 @@ void Rendering(HDC memdc1) {
 		//가시 그려주기
 		for (int i = 0; i < THORNCNT; ++i)
 			ThronImg.Draw(memdc1, ThornStatus[i].x, ThornStatus[i].y, ThornStatus[i].x_size, ThornStatus[i].y_size);
-			
+
 		//불 그려주기
 		for (int i = 0; i < FIRECNT; ++i)
 			Fire.Draw(memdc1, FireStatus[i].x, FireStatus[i].y, FireStatus[i].x_size, FireStatus[i].y_size);
-		
+
 		for (int i = 0; i < FIRECNT; ++i)
 			Fire2.Draw(memdc1, W_FireStatus[i].x, W_FireStatus[i].y, W_FireStatus[i].x_size, W_FireStatus[i].y_size);
-			
+
 
 		// 패턴 흑백으로 미리 그려주기
 		for (int i = 0; i < PATTERNCNT; ++i)
@@ -211,7 +260,7 @@ void Rendering(HDC memdc1) {
 		}
 
 		// 패턴 게임상 그려주기 
-		
+
 		for (int i = 0; i < PATTERNCNT; ++i)
 		{
 			switch (i)
@@ -233,6 +282,12 @@ void Rendering(HDC memdc1) {
 				break;
 			}
 		}
+
+		//버튼 한개로 가정하고 수정함 
+		if (isButtonDown)
+			ButtonUP.Draw(memdc1, ButtonStatus[0].x, ButtonStatus[0].y, ButtonStatus[0].x_size, ButtonStatus[0].y_size);
+		else
+			ButtonDown.Draw(memdc1, ButtonStatus[0].x, ButtonStatus[0].y, ButtonStatus[0].x_size, ButtonStatus[0].y_size);
 	}
 	else
 	{
@@ -303,7 +358,7 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 	//플레이어정보 저장 
 
 
-	
+
 	while (1) {
 		//
 		retval = recv(sock, (char*)&login_info, sizeof(LOGIN_PACKET), MSG_WAITALL);
@@ -313,10 +368,8 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 		playerStatus[CurrentPlayerid].x = login_info.player.x;
 		playerStatus[CurrentPlayerid].y = login_info.player.y;
 		playerStatus[CurrentPlayerid].visible = login_info.player.visible;
-
-		cout << login_info.player.visible << endl;
 		//3명 다 들어오고 play 시작
-		if (CurrentPlayerid == 2) {
+		if (currentclientcnt == 2) {
 			break;
 		}
 
@@ -325,59 +378,40 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 	//초기 값 받기 ->  여기서 초기의 패턴과 버튼의 값, 시간, 게임시작 여부 
 	retval = recv(sock, (char*)&Init_info, sizeof(INIT_PACKET), 0);
 	//패턴의 초기 위치 셋팅
-
-	PatternStatus[0] = Init_info.pattern_temp[0]; 
+	PatternStatus[0] = Init_info.pattern_temp[0];
 	PatternStatus[1] = Init_info.pattern_temp[1];
 	PatternStatus[2] = Init_info.pattern_temp[2];
 	PatternStatus[3] = Init_info.pattern_temp[3];
-	PatternStatus[4] = Init_info.pattern_temp[4]; 
+	PatternStatus[4] = Init_info.pattern_temp[4];
 
 	//버튼의 초기 위치 셋팅
 	ButtonStatus[0] = Init_info.button[0];
 	ButtonStatus[1] = Init_info.button[1];
-
 	timelap = Init_info.timelap;
-
 	//gamemodestate를 처음에 -1로 뒀다가 여기서 0으로 바뀌면 시작하도록 하기 
 	//gamemodestate = Init_info.gameStart; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어
-	//timelap = Init_info.timelap; 
-									
-	//update값 받기
-	if (Init_info.gameStart)
-	{
-		while (1) {
-			retval = recv(sock, (char*)&update_info, sizeof(OBJECT_UPDATE_PACKET), 0);
-			//불 위치 업데이트
-			for (int i = 0; i < FIRECNT; ++i) {
-				W_FireStatus[i].x = update_info.W_FireTemp[i].x;
-				W_FireStatus[i].y = update_info.W_FireTemp[i].y;
-				FireStatus[i].x = update_info.H_FireTemp[i].x;
-				FireStatus[i].y = update_info.H_FireTemp[i].y;
-			}
 
-			//패턴 위치 업데이트
-			for (int i = 0; i < PATTERNCNT; ++i) {
-				PatternStatus[i].x = update_info.PatternTemp[i].x;
-				PatternStatus[i].y = update_info.PatternTemp[i].y;
-			}
+	//update값 받기 
+	while (1) {
+		retval = recv(sock, (char*)&update_info, sizeof(OBJECT_UPDATE_PACKET), 0); 
+		//불 위치 업데이트
+		UpdateFire(update_info);
 
-			//모든 플레이어 위치 업데이트
-			for (int i = 0; i < MAXCLIENT; ++i) {
-				playerStatus[i].x = update_info.PlayerTemp[i].x;
-				playerStatus[i].y = update_info.PlayerTemp[i].y;
-			}
+		//패턴 위치 업데이트
+		UpdatePattern(update_info);
 
-			//시간
-			timelap = update_info.timelap;
-			//문 보이는지 여부
-			visible = update_info.visible;
-			//게임모드 상태 
-			gamemodestate = update_info.gamemodestate;
-
-		}
-	}
+		//모든 플레이어 위치 업데이트
+		UpdatePlayer(update_info);
 	
+		//시간
+		UpdateTime(update_info);
+		
+		//문 보이는지 여부
+		visible = update_info.visible;
 
+		//게임모드 상태 
+		gamemodestate = update_info.gamemodestate;
+	}
 	closesocket(sock);
 
 	// 윈속 종료
@@ -393,10 +427,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static HBRUSH hBrush, oldBrush;
 
 	switch (uMsg) {
-	case WM_TIMER: 
+	case WM_TIMER:
 		switch (wParam)
 		{
-		case 1: 
+		case 1:
 			InvalidateRect(hWnd, NULL, false); // 화면 갈아주기
 			return 0;
 			break;
@@ -410,9 +444,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		_tfreopen(_T("CONERR$"), _T("w"), stderr);
 
 		Image(); // 이미지함수 불러서 초기화
-		
+
 		InitSettingObj();
-		
+
 		SetTimer(hWnd, 1, 10, NULL); // 1번 타이머 , 0.01초마다 갱신하겠다는거
 		break;
 
@@ -427,7 +461,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			keyinput_info.state_type = 3;
 		}
 		else if (wParam == VK_SPACE) { // 더블점프가능하게
-			if (jumpCnt  < 2){  //점프 두번까지 가능 
+			if (jumpCnt < 2) {  //점프 두번까지 가능 
 				isJump = true;
 				jumpCnt++;
 			}
@@ -460,7 +494,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		hBitmap1 = CreateCompatibleBitmap(hdc, 1280, 720);
 		HBITMAP hOldBitmap = (HBITMAP)SelectObject(memdc1, hBitmap1);
 
-		Rendering(memdc1); 
+		Rendering(memdc1);
 
 		BitBlt(hdc, 0, 0, 1280, 720, memdc1, 0, 0, SRCCOPY);
 
@@ -471,7 +505,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		EndPaint(hWnd, &ps);
 	}
-		break;
+	break;
 
 	case WM_DESTROY: // 파괴될때 불려지는곳
 		KillTimer(hWnd, 1);

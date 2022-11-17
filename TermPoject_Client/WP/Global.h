@@ -9,7 +9,7 @@
 #define THORNCNT 9 // 가시 개수
 #define PATTERNCNT 5 // 패턴모양 개수
 #define BUTTONCNT 2 // 버튼 개수
-#define MAXCLIENT 3//플레이어 수  
+#define MAXCLIENT 3 //플레이어 수  
 
 bool keyLayout[256]{}; // 키보드 레이아웃인데 이거 사실 없어도되긴해,,,, 내가 코드를 너무 못짰다
 bool isJump = false; // 점프 체크
@@ -29,3 +29,4 @@ short gamemodestate = 0; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 
 bool visible = false; // 초기값은 문 안보이게, 문양 다 먹게되면 true로
 short currentclientcnt = 0; // 현재 접속한 클라이언트 개수
 int CurrentPlayerid =0; //해당client의 아이디값 
+bool isButtonDown = false;
