@@ -100,26 +100,6 @@ void UpdateTime(OBJECT_UPDATE_PACKET& update_info) {
 }
 
 
-void UpdatePattern(OBJECT_UPDATE_PACKET& update_info) {
-	//패턴 위치 업데이트
-	for (int i = 0; i < PATTERNCNT; ++i) {
-		PatternStatus[i].x = update_info.PatternTemp[i].x;
-		PatternStatus[i].y = update_info.PatternTemp[i].y;
-	}
-}
-
-void UpdatePlayer(OBJECT_UPDATE_PACKET& update_info) {
-	//모든 플레이어 위치 업데이트
-	for (int i = 0; i < MAXCLIENT; ++i) {
-		playerStatus[i].x = update_info.PlayerTemp[i].x;
-		playerStatus[i].y = update_info.PlayerTemp[i].y;
-	}
-}
-
-void UpdateTime(OBJECT_UPDATE_PACKET& update_info) {
-	timelap = update_info.timelap;
-}
-
 void InitSettingObj() {
 	// -  server로 부터 받아와야 하는 객체들은 id값 모두 0으로 했음
 	// 플레이어 셋팅
