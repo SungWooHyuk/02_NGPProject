@@ -51,7 +51,7 @@ DWORD WINAPI Client_Thread(LPVOID arg)
 	{
 		login_info[m_id].player.id = m_id;
 		login_info[m_id].player.state_type = PLAYER::IDLE;
-		login_info[m_id].player.x = 640;
+		login_info[m_id].player.x = 640 + (Client_count * 20);
 		login_info[m_id].player.y = 360;
 		login_info[m_id].player.visible = true;
 
