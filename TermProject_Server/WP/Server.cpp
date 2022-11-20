@@ -83,12 +83,21 @@ DWORD WINAPI Client_Thread(LPVOID arg)
 				send(client_sock[i], (char*)&login_info[j], sizeof(LOGIN_PACKET), 0);
 			}
 		}
+
+	
 	}
+	
 
 	// 리시브 후 센드 한번 해주고
 
 	while (1) {
 		WaitForSingleObject(Ec_hThread[m_id], INFINITE);
+
+		//여기서 키값 입력 받고 플레이어3명의 위치 모두 바꿔주기 
+		for (int i = 0; i < MAXCLIENT; ++i) {
+			UpdatePlayer(i);  
+		}
+
 
 		SetEvent(E_hThread[m_id]);
 		ResetEvent(Ec_hThread[m_id]);
@@ -120,7 +129,25 @@ DWORD WINAPI Update_Thread(LPVOID arg)
 
 		//send()
 		//Update();
-		//isCollision();
+		
+		//player 업데이트 부분
+		for (int i = 0; i < MAXCLIENT; ++i) 
+			UpdatePlayer(i); 
+
+		//fire 업데이트 부분 
+		UpdateFire();
+
+		
+		
+		for (int i = 0; i < MAXCLIENT; ++i) {
+			//여기에선 clientThread에서 키값 입력 받고 플레이어3명의 위치 모두 바꿔주었기 때문에 충돌 여부 확인 가능
+			IsCollisionFloor(i);
+			IsCollisionThorn(i);
+			IsCollisionFire(i);
+			//pattern 업데이트 부분 -> 여기서 진행 
+			UpdatePattern(i); //충돌처리랑 위치 이동 모두 여기서 할것임 
+		}
+		
 		//send;
 
 		update_packet.gamemodestate = 0;
@@ -207,6 +234,137 @@ int main(int argc, char* argv[])
 	CloseHandle(MyUpdateThread);
 
 	return 0;
+}
+
+void UpdatePlayer(short currentId) { 
+	//키 값에 따라 player의 위치 업데이트해주어야 함 
+	//콜리젼 박스도 해야함 
+	switch (playerStatus[currentId].state_type) {
+	case PLAYER::Player_State::LEFT:
+		break;
+	case PLAYER::Player_State::RIGHT:
+		break;
+	case PLAYER::Player_State::JUMP:
+		break;
+	case PLAYER::Player_State::IDLE:
+		break;
+	case PLAYER::Player_State::DEAD:
+		break; 
+	} 
+}
+
+void UpdateFire() {
+	//불 사라지면 다시 위치 셋팅 
+	for (int i = 0; i < FIRECNT; ++i) {
+		// 초기화
+		if (FireStatus[i].y > 750.f) 
+		{
+			switch (i) {
+			case 0:
+				FireStatus[i].x = 70;
+				break;
+			case 1:
+				FireStatus[i].x = 380;
+				break;
+			case 2:
+				FireStatus[i].x = 500;
+				break;
+			case 3:
+				FireStatus[i].x = 710;
+				break;
+			case 4:
+				FireStatus[i].x = 935;
+				break;
+			}
+			FireStatus[i].y = -30.f;
+			FiredropSpeed[i] = 0.f;
+		}
+		if (W_FireStatus[i].x > 1300.f) 
+		{
+			W_FireStatus[i].x = -30.f; 
+			switch (i) {
+			case 0:
+				FireStatus[i].y = 47;
+				break;
+			case 1:
+				FireStatus[i].y = 218;
+				break;
+			case 2:
+				FireStatus[i].y = 317;
+				break;
+			case 3:
+				FireStatus[i].y = 482;
+				break;
+			case 4:
+				FireStatus[i].y = 573; 
+				break;
+			}
+		}
+
+		FiredropSpeed[i] += Firegravity[i]; // 스피드 더해주고
+		FireStatus[i].y += FiredropSpeed[i]; // 상태 변화
+		W_FireStatus[i].x += FiredropSpeed[i]; // 상태 변화
+
+		//콜리젼 박스 업데이트 
+		FireStatus[i].CollidBox = RECT_OBJECT(FireStatus[i].x, FireStatus[i].y, FireStatus[i].x_size, FireStatus[i].y_size);
+		W_FireStatus[i].CollidBox = RECT_OBJECT(W_FireStatus[i].x, W_FireStatus[i].y, W_FireStatus[i].x_size, W_FireStatus[i].y_size);
+	}
+}
+void UpdatePattern(short currentId) { 
+	for (int i = 0; i < PATTERNCNT; ++i) {
+		if (IntersectRect(&rt, &playerStatus[currentId].CollidBox, &PatternStatus[i].CollidBox))
+		{
+			PatternStatus[i].x = 1200 - 30 * i; //충돌하면 우측 상단으로 이동시키는 코드
+			PatternStatus[i].y = 0;
+			isPatternClear[i] = true;
+		}
+
+		//5개 모두 획득했다면 
+		for (int i = 0; i < PATTERNCNT; ++i) {
+			if (isPatternClear[i] == true)
+				check += 1;
+			if (check == 5)
+				update_packet.gamemodestate = 2; //gameClear 의미함 
+		}
+	}
+}
+void IsCollisionFloor(short currentId) {   
+	for (int i = 0; i < FLOORCNT; ++i)
+	{
+		if (IntersectRect(&rt, &playerStatus[currentId].CollidBox, &floorStatus[i].CollidBox))
+		{
+			playerStatus[currentId].y = floorStatus[i].y - 27; // 발목 안들어가게 좀 빼줌
+			dropSpeed = 0.f; 
+		}
+	}
+}
+
+void IsCollisionThorn(short currentId) {
+	for (int i = 0; i < THORNCNT; ++i) // 가시에 닿는 충돌체크 아래 일단 주석.
+	{
+		if (IntersectRect(&rt, &playerStatus[currentId].CollidBox, &ThornStatus[i].CollidBox))
+		{
+			update_packet.gamemodestate = 1; //gameOver 의미함 
+			update_packet.PlayerTemp[currentId].state_type = PLAYER::Player_State::DEAD; 
+		}
+	}
+}
+
+void IsCollisionFire(short currentId) {
+	for (int i = 0; i < FIRECNT; ++i) // 불이랑 체크
+	{
+		if (IntersectRect(&rt, &playerStatus[currentId].CollidBox, &FireStatus[i].CollidBox))
+		{
+			update_packet.gamemodestate = 1; //gameOver 의미함 
+			update_packet.PlayerTemp[currentId].state_type = PLAYER::Player_State::DEAD;
+		}
+
+		if (IntersectRect(&rt, &playerStatus[currentId].CollidBox, &W_FireStatus[i].CollidBox))
+		{
+			update_packet.gamemodestate = 1; //gameOver 의미함 
+			update_packet.PlayerTemp[currentId].state_type = PLAYER::Player_State::DEAD;
+		}
+	}
 }
 
 void InitSettingObj() {
