@@ -224,6 +224,10 @@ void InitSettingObj() {
 	floorStatus[7] = Object(7, 850, 510, 158, 30);
 	floorStatus[8] = Object(8, 1030, 140, 158, 30);
 	floorStatus[9] = Object(9, 1050, 600, 158, 30);
+	//collisionBox생성해줌 -> 고정 
+	for (int i = 0; i < FLOORCNT; ++i) {
+		floorStatus[i].CollidBox = RECT_OBJECT(floorStatus[i].x, floorStatus[i].y, floorStatus[i].x_size, floorStatus[i].y_size);
+	}
 
 	// 첫 가시 위치 바뀔일 없음 
 	ThornStatus[0] = Object(0, 0, 630, 145, 55);
@@ -235,6 +239,10 @@ void InitSettingObj() {
 	ThornStatus[6] = Object(6, 870, 630, 145, 55);
 	ThornStatus[7] = Object(7, 1015, 630, 145, 55);
 	ThornStatus[8] = Object(8, 1160, 630, 145, 55);
+	//고정
+	for (int i = 0; i < THORNCNT; ++i) {
+		ThornStatus[i].CollidBox = RECT_OBJECT(ThornStatus[i].x, ThornStatus[i].y, ThornStatus[i].x_size, ThornStatus[i].y_size);
+	}
 
 	// 세로 불 초기값
 	FireStatus[0] = Object(0, 70, -30, 34, 51);
@@ -242,6 +250,9 @@ void InitSettingObj() {
 	FireStatus[2] = Object(2, 500, -30, 34, 51);
 	FireStatus[3] = Object(3, 710, -30, 34, 51);
 	FireStatus[4] = Object(4, 935, -30, 34, 51);
+	for (int i = 0; i < FIRECNT; ++i) {
+		FireStatus[i].CollidBox = RECT_OBJECT(FireStatus[i].x, FireStatus[i].y, FireStatus[i].x_size, FireStatus[i].y_size);
+	}
 
 	// 가로 불 초기값
 	W_FireStatus[0] = Object(0, -30, 47, 51, 34);
@@ -249,9 +260,11 @@ void InitSettingObj() {
 	W_FireStatus[2] = Object(2, -30, 317, 51, 34);
 	W_FireStatus[3] = Object(3, -30, 482, 51, 34);
 	W_FireStatus[4] = Object(4, -30, 573, 51, 34);
+	for (int i = 0; i < FIRECNT; ++i) {
+		W_FireStatus[i].CollidBox = RECT_OBJECT(W_FireStatus[i].x, W_FireStatus[i].y, W_FireStatus[i].x_size, W_FireStatus[i].y_size);
+	}
 
-
-	// 흑백 패턴 초기값 셋팅
+	// 흑백 패턴 초기값 셋팅-> 콜리젼 박스 필요 없음 
 	gs_PatternStatus[0] = Object(0, 1200, 0, 50, 50);
 	gs_PatternStatus[1] = Object(1, 1170, 0, 50, 50);
 	gs_PatternStatus[2] = Object(2, 1140, 0, 50, 50);
@@ -260,7 +273,7 @@ void InitSettingObj() {
 
 	// 문 초기값 셋팅 
 	doorstatus = Object(0, 723, 380, 1, 1); //이건 문양 다 먹으면 서버쪽에서 값 계산해서 클라로 보내주면 됨
-
+	doorstatus.CollidBox = RECT_OBJECT(doorstatus.x, doorstatus.y, doorstatus.x_size, doorstatus.y_size);
 
 
 	// 패턴의 초기 위치 셋팅
@@ -277,12 +290,17 @@ void InitSettingObj() {
 				k = choice_uid(dre); //이미 true인 곳은 다시 랜덤값 주기 
 		}
 		PatternStatus[i] = Object(i, floorStatus[k].x + floorStatus[k].x_size / 3, floorStatus[k].y - floorStatus[k].y_size - floorStatus[k].y_size / 2, 50,50); // 뒤에 + 로 중앙으로
-	
+		//충돌 영역 위함 
+		PatternStatus[i].CollidBox = RECT_OBJECT(PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
 	}
+	
 
 	//버튼 초기 위치 셋팅 - 이건 정확한 값 아니고 노가다로 한번 위치 맞춰봐야함 
 	ButtonStatus[0] = Object(0, 100, 530, 120, 39); 
-	ButtonStatus[1] = Object(1, 600, 580, 130, 65);  
-
+	ButtonStatus[1] = Object(1, 600, 580, 130, 65); 
+	for (int i = 0; i < BUTTONCNT; ++i) {
+		ButtonStatus[i].CollidBox = RECT_OBJECT(ButtonStatus[i].x, ButtonStatus[i].y, ButtonStatus[i].x_size, ButtonStatus[i].y_size);
+	}
+	
 
 }

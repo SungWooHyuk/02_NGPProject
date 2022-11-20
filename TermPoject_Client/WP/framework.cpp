@@ -20,13 +20,6 @@ uniform_int_distribution<int> x_uid{ 50, 1200 }; // 불 x축 랜덤값
 uniform_int_distribution<int> y_uid{ 30, 720 }; // 불 y축 랜덤값  
 uniform_int_distribution<int> choice_uid{ 0,9 }; // 문양 위치 랜덤값 
 
-RECT rt; // 기준 사각형
-RECT PlayerBox; // 플레이어 충돌박스
-RECT FloorBox[FLOORCNT]; // 바닥 충돌박스
-RECT FireBox[FIRECNT]; // 불 충돌박스
-RECT W_FireBox[FIRECNT]; // 가로 불 충돌박스
-RECT ThornBox[THORNCNT]; // 가시 충돌박스
-RECT PatternBox[PATTERNCNT]; // 패턴 충돌박스 
 
 SOCKET sock;
 
@@ -75,6 +68,8 @@ void UpdateFire(OBJECT_UPDATE_PACKET& update_info) {
 		W_FireStatus[i].y = update_info.W_FireTemp[i].y;
 		FireStatus[i].x = update_info.H_FireTemp[i].x;
 		FireStatus[i].y = update_info.H_FireTemp[i].y;
+		W_FireStatus[i].CollidBox = RECT_OBJECT(W_FireStatus[i].x, W_FireStatus[i].y, W_FireStatus[i].x_size, W_FireStatus[i].y_size);
+		FireStatus[i].CollidBox = RECT_OBJECT(FireStatus[i].x, FireStatus[i].y, FireStatus[i].x_size, FireStatus[i].y_size);
 	}
 }
 
@@ -84,6 +79,7 @@ void UpdatePattern(OBJECT_UPDATE_PACKET& update_info) {
 	for (int i = 0; i < PATTERNCNT; ++i) {
 		PatternStatus[i].x = update_info.PatternTemp[i].x;
 		PatternStatus[i].y = update_info.PatternTemp[i].y;
+		PatternStatus[i].CollidBox = RECT_OBJECT(PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
 	}
 }
 
@@ -92,6 +88,7 @@ void UpdatePlayer(OBJECT_UPDATE_PACKET& update_info) {
 	for (int i = 0; i < MAXCLIENT; ++i) {
 		playerStatus[i].x = update_info.PlayerTemp[i].x;
 		playerStatus[i].y = update_info.PlayerTemp[i].y;
+		playerStatus[i].CollidBox = RECT_OBJECT(playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); 
 	}
 }
  
@@ -118,6 +115,11 @@ void InitSettingObj() {
 	floorStatus[7] = Object(7, 850, 510, 158, 30);
 	floorStatus[8] = Object(8, 1030, 140, 158, 30);
 	floorStatus[9] = Object(9, 1050, 600, 158, 30);
+	//collisionBox생성해줌 -> 고정 
+	for (int i = 0; i < FLOORCNT; ++i) {
+		floorStatus[i].CollidBox = RECT_OBJECT(floorStatus[i].x, floorStatus[i].y, floorStatus[i].x_size, floorStatus[i].y_size);
+	}
+
 
 	// 첫 가시 위치 바뀔일 없음 
 	ThornStatus[0] = Object(0, 0, 630, 145, 55);
@@ -129,6 +131,10 @@ void InitSettingObj() {
 	ThornStatus[6] = Object(6, 870, 630, 145, 55);
 	ThornStatus[7] = Object(7, 1015, 630, 145, 55);
 	ThornStatus[8] = Object(8, 1160, 630, 145, 55);
+	//고정
+	for (int i = 0; i < THORNCNT; ++i) {
+		ThornStatus[i].CollidBox = RECT_OBJECT(ThornStatus[i].x, ThornStatus[i].y, ThornStatus[i].x_size, ThornStatus[i].y_size);
+	}
 
 	// 세로 불 초기값
 	FireStatus[0] = Object(0, 70, -30, 34, 51);
@@ -136,6 +142,9 @@ void InitSettingObj() {
 	FireStatus[2] = Object(2, 500, -30, 34, 51);
 	FireStatus[3] = Object(3, 710, -30, 34, 51);
 	FireStatus[4] = Object(4, 935, -30, 34, 51);
+	for (int i = 0; i < FIRECNT; ++i) {
+		FireStatus[i].CollidBox = RECT_OBJECT(FireStatus[i].x, FireStatus[i].y, FireStatus[i].x_size, FireStatus[i].y_size);
+	}
 
 	// 가로 불 초기값
 	W_FireStatus[0] = Object(0, -30, 47, 51, 34);
@@ -143,6 +152,9 @@ void InitSettingObj() {
 	W_FireStatus[2] = Object(2, -30, 317, 51, 34);
 	W_FireStatus[3] = Object(3, -30, 482, 51, 34);
 	W_FireStatus[4] = Object(4, -30, 573, 51, 34);
+	for (int i = 0; i < FIRECNT; ++i) {
+		W_FireStatus[i].CollidBox = RECT_OBJECT(W_FireStatus[i].x, W_FireStatus[i].y, W_FireStatus[i].x_size, W_FireStatus[i].y_size);
+	}
 
 	// 패턴의 초기 위치 셋팅
 	PatternStatus[0] = Object(0, -10, 0, 50, 50);
@@ -150,17 +162,19 @@ void InitSettingObj() {
 	PatternStatus[2] = Object(0, -10, 0, 50, 50);
 	PatternStatus[3] = Object(0, -10, 0, 50, 50);
 	PatternStatus[4] = Object(0, -10, 0, 50, 50);
+	
 
-	// 흑백 패턴 초기값 셋팅
+	// 흑백 패턴 초기값 셋팅 
 	gs_PatternStatus[0] = Object(0, 1200, 0, 50, 50);
 	gs_PatternStatus[1] = Object(1, 1170, 0, 50, 50);
 	gs_PatternStatus[2] = Object(2, 1140, 0, 50, 50);
 	gs_PatternStatus[3] = Object(3, 1110, 0, 50, 50);
 	gs_PatternStatus[4] = Object(4, 1080, 0, 50, 50);
 
+
 	// 문 초기값 셋팅 
 	doorstatus = Object(0, 723, 380, 1, 1);
-
+	doorstatus.CollidBox = RECT_OBJECT(doorstatus.x, doorstatus.y, doorstatus.x_size, doorstatus.y_size);
 
 }
 
@@ -348,6 +362,7 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 		playerStatus[CurrentPlayerid].x = login_info.player.x;
 		playerStatus[CurrentPlayerid].y = login_info.player.y;
 		playerStatus[CurrentPlayerid].visible = login_info.player.visible;
+		playerStatus->CollidBox = RECT_OBJECT(playerStatus[CurrentPlayerid].x, playerStatus[CurrentPlayerid].y, playerStatus[CurrentPlayerid].x_size, playerStatus[CurrentPlayerid].y_size);
 		//3명 다 들어오고 play 시작
 		if (currentclientcnt == 2) {
 			break;
@@ -363,7 +378,8 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 	PatternStatus[2] = Init_info.pattern_temp[2];
 	PatternStatus[3] = Init_info.pattern_temp[3];
 	PatternStatus[4] = Init_info.pattern_temp[4];
-
+	
+	
 	//버튼의 초기 위치 셋팅
 	ButtonStatus[0] = Init_info.button[0];
 	ButtonStatus[1] = Init_info.button[1];
@@ -431,26 +447,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_KEYDOWN:
-
 		if (wParam == VK_LEFT) {
 			keyLayout[VK_LEFT] = 1; // 좌
-			keyinput_info.state_type = 2;
+			keyinput_info.state_type = PLAYER::Player_State::LEFT;  
 		}
 		else if (wParam == VK_RIGHT) {
 			keyLayout[VK_RIGHT] = 1; // 우
-			keyinput_info.state_type = 3;
+			keyinput_info.state_type = PLAYER::Player_State::RIGHT; 
 		}
 		else if (wParam == VK_SPACE) { // 더블점프가능하게
 			if (jumpCnt < 2) {  //점프 두번까지 가능 
 				isJump = true;
 				jumpCnt++;
 			}
-			keyinput_info.state_type = 1;//점프
+			keyinput_info.state_type = PLAYER::Player_State::JUMP;//점프 
 		}
 		else {
-			keyinput_info.state_type = 0;//가만히
+			keyinput_info.state_type = PLAYER::Player_State::IDLE;//가만히 
 		}
-
+		keyinput_info.m_id = CurrentPlayerid;
+		send(sock, (char*)&keyinput_info, sizeof(KEYINPUT_PAKCET), 0);  
 		InvalidateRect(hWnd, NULL, false); // 화면 초기화
 
 		break;
