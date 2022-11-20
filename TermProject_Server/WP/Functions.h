@@ -13,6 +13,7 @@ public:
 	short y{}; // y좌표
 	short x_size{}; // x사이즈
 	short y_size{}; // y사이즈 
+	RECT CollidBox;// 충돌 처리를 위한 박스 
 };
 
 class Player :public Object

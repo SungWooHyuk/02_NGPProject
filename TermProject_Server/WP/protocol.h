@@ -23,7 +23,7 @@ struct INIT_PACKET {
 
 struct KEYINPUT_PAKCET {
 	short m_id; // 키를 입력한 플레이어의 id값
-	PLAYER::Player_State state_type; // 플레이어의 상태 IDLE, JUMP, LEFT, RIGHT
+	PLAYER::Player_State state_type; // 플레이어의 상태 IDLE, JUMP, LEFT, RIGHT 
 };
 
 struct OBJECT_UPDATE_PACKET {
