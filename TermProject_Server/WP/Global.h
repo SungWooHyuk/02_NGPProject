@@ -29,3 +29,4 @@ short gamemodestate = 0; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 
 bool visible = false; // 초기값은 문 안보이게, 문양 다 먹게되면 true로
 short currentclientcnt = 0; // 현재 접속한 클라이언트 개수
 int CurrentPlayerid = 0; //해당client의 아이디값 
+RECT rt;   //기준 사각형
