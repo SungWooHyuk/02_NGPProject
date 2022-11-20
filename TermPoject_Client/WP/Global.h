@@ -25,8 +25,9 @@ static float FiredropSpeed[FIRECNT]{ 0.f }; // 세로 불 떨어지는 값 - 지금 가로가
 static float Firegravity[FIRECNT]{ 0.1f, 0.15f, 0.2f, 0.25f }; // 불 중력값 다 다르게 주려고
 static float moveSpeed = 1.f; // 좌 우 움직임 스피드
 unsigned int timelap{}; // 시간측정을 위한 변수
+bool gamestart = false;
 short gamemodestate = 0; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어
 bool visible = false; // 초기값은 문 안보이게, 문양 다 먹게되면 true로
 short currentclientcnt = 0; // 현재 접속한 클라이언트 개수
 int CurrentPlayerid =0; //해당client의 아이디값 
-bool isButtonDown = false;
+bool isButtonDown = true;

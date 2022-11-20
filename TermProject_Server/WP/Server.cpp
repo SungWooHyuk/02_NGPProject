@@ -1,6 +1,7 @@
 #pragma warning(disable : 4996)
 #define _WINSOCK_DEPRECATED_NO_WARNINGS // 최신 VC++ 컴파일 시 경고 방지 
 #pragma comment(lib, "ws2_32")
+#pragma comment(lib, "winmm.lib")
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <stdio.h>
@@ -24,6 +25,7 @@ HANDLE hThread; // 쓰레드 생성할 때 사용할 핸들
 DWORD Threadid[3]; // 생성할 때 생기는 id값 담기
 int p2;
 int cnt{};
+int ccnt{};
 int Client_count = 0;
 bool logincheck[3]{ false, false, false };
 bool Initcheck = false;
@@ -31,7 +33,13 @@ LOGIN_PACKET login_info[3];
 SOCKET client_sock[3];
 INIT_PACKET init;
 OBJECT_UPDATE_PACKET update_packet;
+//시간
 
+static DWORD frameDelta = 0;
+static DWORD lastTime = timeGetTime();
+//무한 루프 
+
+void InitSettingObj();
 DWORD WINAPI Client_Thread(LPVOID arg);
 DWORD WINAPI Update_Thread(LPVOID arg);
 
@@ -76,9 +84,9 @@ DWORD WINAPI Client_Thread(LPVOID arg)
 	}
 	else if (Client_count == 3)
 	{
-		for (int i = 0; i < Client_count; ++i)
+		for (int i = 0; i < 3; ++i)
 		{
-			for (int j = 0; j < Client_count; ++j)
+			for (int j = 0; j < 3; ++j)
 			{
 				send(client_sock[i], (char*)&login_info[j], sizeof(LOGIN_PACKET), 0);
 			}
@@ -100,35 +108,37 @@ DWORD WINAPI Client_Thread(LPVOID arg)
 DWORD WINAPI Update_Thread(LPVOID arg)
 {
 	DWORD retval;
-	printf("생성\n");
+
 	while (1) {
 
-		//WaitForSingleObject(hThread[0], INFINITE);
-
 		retval = WaitForMultipleObjects(3, E_hThread, TRUE, INFINITE);
+
 
 		if (Initcheck == false)
 		{
 			init.gameStart = true;
-			init.timelap = 30;
+			init.timelap = 50;
+			for (int i = 0; i < PATTERNCNT; ++i)
+			{
+				init.pattern_temp[i].x = PatternStatus[i].x;
+				init.pattern_temp[i].y = PatternStatus[i].y;
+				init.pattern_temp[i].x_size = PatternStatus[i].x_size;
+				init.pattern_temp[i].y_size = PatternStatus[i].y_size;
+
+			}
+			for (int i = 0; i < BUTTONCNT; ++i)
+			{
+				init.button[i].x = ButtonStatus[i].x;
+				init.button[i].y = ButtonStatus[i].y;
+				init.button[i].x_size = ButtonStatus[i].x_size;
+				init.button[i].y_size = ButtonStatus[i].y_size;
+			}
+
 			for (int i = 0; i < MAXCLIENT; ++i)
 			{
-				send(client_sock[i], (char*)&init, sizeof(init), 0);
+				send(client_sock[i], (char*)&init, sizeof(INIT_PACKET), 0);
 			}
 			Initcheck = true;
-		}
-
-		//send()
-		//Update();
-		//isCollision();
-		//send;
-
-		update_packet.gamemodestate = 0;
-		update_packet.timelap -= 1;
-
-		for (int i = 0; i < MAXCLIENT; ++i)
-		{
-			send(client_sock[i], (char*)&update_packet, sizeof(update_packet), 0);
 		}
 
 		ResetEvent(E_hThread[0]);
@@ -137,8 +147,6 @@ DWORD WINAPI Update_Thread(LPVOID arg)
 		SetEvent(Ec_hThread[0]);
 		SetEvent(Ec_hThread[1]);
 		SetEvent(Ec_hThread[2]);
-
-		//ResetEvent(MyUpdateThread);
 	}
 	return 0;
 }
@@ -165,6 +173,7 @@ int main(int argc, char* argv[])
 	int addrlen;
 	HANDLE cli_Thread; // 접속할때마다 생성
 
+	InitSettingObj();
 	// 2번째 인자값 TRUE : 수동
 	// 3번째 인자값 FALSE : 비신호 
 	// 이벤트 신호 생성
@@ -189,7 +198,7 @@ int main(int argc, char* argv[])
 			cli_Thread = CreateThread(NULL, 0, Client_Thread, (LPVOID)client_sock, 0, &Threadid[cnt]);
 
 			if (hThread == NULL) {
-				
+
 			}
 			else {
 				CloseHandle(hThread);
@@ -276,13 +285,33 @@ void InitSettingObj() {
 			else if (randomCheck[k])
 				k = choice_uid(dre); //이미 true인 곳은 다시 랜덤값 주기 
 		}
-		PatternStatus[i] = Object(i, floorStatus[k].x + floorStatus[k].x_size / 3, floorStatus[k].y - floorStatus[k].y_size - floorStatus[k].y_size / 2, 50,50); // 뒤에 + 로 중앙으로
-	
+		PatternStatus[i] = Object(i, floorStatus[k].x + floorStatus[k].x_size / 3, floorStatus[k].y - floorStatus[k].y_size - floorStatus[k].y_size / 2, 50, 50); // 뒤에 + 로 중앙으로
+
 	}
 
 	//버튼 초기 위치 셋팅 - 이건 정확한 값 아니고 노가다로 한번 위치 맞춰봐야함 
-	ButtonStatus[0] = Object(0, 100, 530, 120, 39); 
-	ButtonStatus[1] = Object(1, 600, 580, 130, 65);  
+	ButtonStatus[0] = Object(0, 100, 530, 30, 20);
+	ButtonStatus[1] = Object(1, 600, 580, 30, 20);
 
 
+}
+
+void FPSCheck() {
+
+	DWORD currTime = timeGetTime();
+	frameDelta = (currTime - lastTime) * 0.001f;
+	DWORD FPS = 15;                     //15(FPS)라는 숫자가 fps를 결정한다.숫자가 작을수록 더 많은 프레임을 그린다..
+
+	//컴퓨터 성능에 따라 테스트하여가장 느린 fps를 검출한 후 결정한다.
+
+	if (frameDelta >= 1 / FPS)
+	{
+
+		//렌더링 하는 부분.
+		lastTime = currTime;
+	}
+	else {
+		//Sleep(frameDelta - 1 / FPS); //넣어줘도 되고 그냥 주석 처리해도 상관 없음니다.
+
+	}
 }

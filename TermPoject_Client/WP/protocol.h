@@ -5,16 +5,10 @@ struct LOGIN_PACKET {
 };
 
 struct INIT_PACKET {
-	//short m_id;
-	//short type; // object 분류에 대한 type
-	//short imageSize_x;
-	//short imageSize_y;
-	//short x, y;
 	Object pattern_temp[PATTERNCNT]{}; // pattern object
 	Object button[BUTTONCNT]{}; // button object 
 	unsigned int timelap; // 초기시간
 	bool gameStart; // 게임시작여부
-
 };
 
 struct KEYINPUT_PAKCET {
