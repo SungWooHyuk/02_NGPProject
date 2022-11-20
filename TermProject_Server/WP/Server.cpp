@@ -328,12 +328,17 @@ void UpdatePattern(short currentId) {
 		}
 	}
 }
+
 void IsCollisionFloor(short currentId) {   
+	RECT PlayerBottomBox = playerStatus[currentId].CollidBox; 
+	PlayerBottomBox.top += 20;
+	PlayerBottomBox.right -= 10;
+	PlayerBottomBox.left += 10;
 	for (int i = 0; i < FLOORCNT; ++i)
 	{
-		if (IntersectRect(&rt, &playerStatus[currentId].CollidBox, &floorStatus[i].CollidBox))
+		if (IntersectRect(&rt, &PlayerBottomBox, &floorStatus[i].CollidBox)) 
 		{
-			playerStatus[currentId].y = floorStatus[i].y - 27; // ¹ß¸ñ ¾Èµé¾î°¡°Ô Á» »©ÁÜ
+			playerStatus[currentId].y = floorStatus[i].y - 27; 
 			dropSpeed = 0.f; 
 		}
 	}
