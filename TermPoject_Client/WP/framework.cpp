@@ -352,7 +352,6 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 	//플레이어정보 저장 
 
 
-
 	while (1) {
 		//
 		retval = recv(sock, (char*)&login_info, sizeof(LOGIN_PACKET), MSG_WAITALL);

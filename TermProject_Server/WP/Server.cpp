@@ -1,6 +1,7 @@
 #pragma warning(disable : 4996)
 #define _WINSOCK_DEPRECATED_NO_WARNINGS // 최신 VC++ 컴파일 시 경고 방지 
 #pragma comment(lib, "ws2_32")
+#pragma comment(lib, "winmm.lib")
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <stdio.h>
@@ -21,16 +22,29 @@ HANDLE Ec_hThread[3]; // 이벤트 체크
 HANDLE MyUpdateThread; // 이벤트 업데이트
 
 HANDLE hThread; // 쓰레드 생성할 때 사용할 핸들
-DWORD Threadid[3]; // 생성할 때 생기는 id값 담기
-int p2;
 int cnt{};
 int Client_count = 0;
 bool logincheck[3]{ false, false, false };
 bool Initcheck = false;
+
+CRITICAL_SECTION cs;
+
 LOGIN_PACKET login_info[3];
 SOCKET client_sock[3];
 INIT_PACKET init;
 OBJECT_UPDATE_PACKET update_packet;
+KEYINPUT_PAKCET key_input;
+PLAYER::Player_State state_type;
+
+void InitSettingObj();
+void UpdatePlayer(short currentId);
+void UpdateFire();
+void UpdatePattern(short currentId);
+void IsCollisionFloor(short currentId);
+void IsCollisionThorn(short currentId);
+void IsCollisionFire(short currentId);
+void LoginDataSetting(int m_id);
+void LoginSendPacket(int Client_count);
 
 DWORD WINAPI Client_Thread(LPVOID arg);
 DWORD WINAPI Update_Thread(LPVOID arg);
@@ -38,60 +52,24 @@ DWORD WINAPI Update_Thread(LPVOID arg);
 DWORD WINAPI Client_Thread(LPVOID arg)
 {
     int m_id = Client_count;
-    Client_count += 1;
+
+    Client_count++;
 
     client_sock[m_id] = (SOCKET)arg;
-    SOCKADDR_IN clientaddr;
-    int addrlen;
-    //char buf[BUFSIZE];
-    addrlen = sizeof(clientaddr);
-    getpeername(client_sock[m_id], (SOCKADDR*)&clientaddr, &addrlen);
 
     if (logincheck[m_id] == false)
     {
-        login_info[m_id].player.id = m_id;
-        login_info[m_id].player.state_type = PLAYER::IDLE;
-        login_info[m_id].player.x = 640 + (Client_count * 20);
-        login_info[m_id].player.y = 360;
-        login_info[m_id].player.visible = true;
-
-        //send(client_sock, (char*)&login_info, sizeof(LOGIN_PACKET), 0);
-        logincheck[m_id] = true;
-
+        LoginDataSetting(m_id);
     }
 
-    if (Client_count == 1)
-    {
-        send(client_sock[m_id], (char*)&login_info[m_id], sizeof(LOGIN_PACKET), 0);
-    }
-    else if (Client_count == 2)
-    {
-        for (int i = 0; i < 2; ++i)
-        {
-            for (int j = 0; j < 2; ++j)
-            {
-                send(client_sock[i], (char*)&login_info[j], sizeof(LOGIN_PACKET), 0);
-            }
-        }
-    }
-    else if (Client_count == 3)
-    {
-        for (int i = 0; i < Client_count; ++i)
-        {
-            for (int j = 0; j < Client_count; ++j)
-            {
-                send(client_sock[i], (char*)&login_info[j], sizeof(LOGIN_PACKET), 0);
-            }
-        }
-
-
-    }
-
-
-    // 리시브 후 센드 한번 해주고
+    LoginSendPacket(Client_count);
 
     while (1) {
+
         WaitForSingleObject(Ec_hThread[m_id], INFINITE);
+
+        //수행하고
+
         SetEvent(E_hThread[m_id]);
         ResetEvent(Ec_hThread[m_id]);
 
@@ -198,7 +176,7 @@ int main(int argc, char* argv[])
             client_sock = accept(listen_sock, (SOCKADDR*)&clientaddr, &addrlen);
 
 
-            cli_Thread = CreateThread(NULL, 0, Client_Thread, (LPVOID)client_sock, 0, &Threadid[cnt]);
+            cli_Thread = CreateThread(NULL, 0, Client_Thread, (LPVOID)client_sock, 0, 0);
 
             if (hThread == NULL) {
 
@@ -356,4 +334,61 @@ void InitSettingObj() {
     }
 
 
+}
+
+void LoginDataSetting(int m_id)
+{
+    login_info[m_id].player.id = m_id;
+    login_info[m_id].player.state_type = PLAYER::IDLE;
+    login_info[m_id].player.x = 640 + (Client_count * 20);
+    login_info[m_id].player.y = 360;
+    login_info[m_id].player.visible = true;
+
+    playerStatus[m_id].x = 640 + (Client_count * 20);
+    playerStatus[m_id].y = 360;
+    playerStatus[m_id].x_size = 24;
+    playerStatus[m_id].y_size = 28;
+    playerStatus[m_id].state_type = PLAYER::IDLE;
+    playerStatus[m_id].id = m_id;
+
+    update_packet.PlayerTemp[m_id].id = m_id;
+    update_packet.PlayerTemp[m_id].x = playerStatus[m_id].x;
+    update_packet.PlayerTemp[m_id].y = playerStatus[m_id].y;
+    update_packet.PlayerTemp[m_id].x_size = 24;
+    update_packet.PlayerTemp[m_id].y_size = 28;
+    update_packet.PlayerTemp[m_id].state_type = playerStatus[m_id].state_type;
+    update_packet.PlayerTemp[m_id].visible = true;
+
+    playerStatus[m_id].CollidBox = RECT_OBJECT(playerStatus[m_id].x, playerStatus[m_id].y, 24, 28);
+
+    logincheck[m_id] = true;
+}
+
+void LoginSendPacket(int Client_count)
+{
+    if (Client_count == 1)
+    {
+        send(client_sock[0], (char*)&login_info[0], sizeof(LOGIN_PACKET), 0);
+    }
+    else if (Client_count == 2)
+    {
+        for (int i = 0; i < 2; ++i)
+        {
+            for (int j = 0; j < 2; ++j)
+            {
+                send(client_sock[i], (char*)&login_info[j], sizeof(LOGIN_PACKET), 0);
+            }
+        }
+    }
+    else if (Client_count == 3)
+    {
+        for (int i = 0; i < 3; ++i)
+        {
+            for (int j = 0; j < 3; ++j)
+            {
+                login_info[j].cli_id = i;
+                send(client_sock[i], (char*)&login_info[j], sizeof(LOGIN_PACKET), 0);
+            }
+        }
+    }
 }
