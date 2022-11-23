@@ -91,6 +91,7 @@ void UpdatePlayer(OBJECT_UPDATE_PACKET& update_info) {
 	for (int i = 0; i < MAXCLIENT; ++i) {
 		playerStatus[i].x = update_info.PlayerTemp[i].x;
 		playerStatus[i].y = update_info.PlayerTemp[i].y;
+		playerStatus[i].CollidBox = RECT_OBJECT(playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); 
 	}
 }
  
