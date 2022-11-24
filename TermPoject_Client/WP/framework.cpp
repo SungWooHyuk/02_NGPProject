@@ -14,6 +14,7 @@
 
 using namespace std;
 
+short my_id; // 서버에서 나한테 매기는 클라 번호
 random_device rd; // 시드값
 default_random_engine dre{ rd() }; // 초기 조건은 추적 불가능하다.
 uniform_int_distribution<int> x_uid{ 50, 1200 }; // 불 x축 랜덤값 
@@ -58,7 +59,8 @@ void err_display(const char* msg)
 	LocalFree(lpMsgBuf);
 }
 
-
+void LoginDataSetting(LOGIN_PACKET& login_info);
+void InitDataSetting(INIT_PACKET& init_info);
 
 //데이터 받아와서 값 변경해주는 부분  
 void UpdateFire(OBJECT_UPDATE_PACKET& update_info) { 
@@ -353,36 +355,19 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 
 
 	while (1) {
-		//
 		retval = recv(sock, (char*)&login_info, sizeof(LOGIN_PACKET), MSG_WAITALL);
-
 		CurrentPlayerid = login_info.player.id;
-		playerStatus[CurrentPlayerid].id = CurrentPlayerid;
-		playerStatus[CurrentPlayerid].x = login_info.player.x;
-		playerStatus[CurrentPlayerid].y = login_info.player.y;
-		playerStatus[CurrentPlayerid].visible = login_info.player.visible;
-		playerStatus->CollidBox = RECT_OBJECT(playerStatus[CurrentPlayerid].x, playerStatus[CurrentPlayerid].y, playerStatus[CurrentPlayerid].x_size, playerStatus[CurrentPlayerid].y_size);
+		LoginDataSetting(login_info);
 		//3명 다 들어오고 play 시작
-		if (currentclientcnt == 2) {
+		if (CurrentPlayerid == 2) {
+			my_id = login_info.cli_id;
 			break;
 		}
-
-
 	}
-	//초기 값 받기 ->  여기서 초기의 패턴과 버튼의 값, 시간, 게임시작 여부 
+
+
 	retval = recv(sock, (char*)&Init_info, sizeof(INIT_PACKET), 0);
-	//패턴의 초기 위치 셋팅
-	PatternStatus[0] = Init_info.pattern_temp[0];
-	PatternStatus[1] = Init_info.pattern_temp[1];
-	PatternStatus[2] = Init_info.pattern_temp[2];
-	PatternStatus[3] = Init_info.pattern_temp[3];
-	PatternStatus[4] = Init_info.pattern_temp[4];
-	
-	
-	//버튼의 초기 위치 셋팅
-	ButtonStatus[0] = Init_info.button[0];
-	ButtonStatus[1] = Init_info.button[1];
-	timelap = Init_info.timelap;
+	InitDataSetting(Init_info);
 	//gamemodestate를 처음에 -1로 뒀다가 여기서 0으로 바뀌면 시작하도록 하기 
 	//gamemodestate = Init_info.gameStart; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어
 
@@ -514,3 +499,39 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
+void LoginDataSetting(LOGIN_PACKET& login_info)
+{
+	playerStatus[login_info.player.id].id = login_info.player.id;
+	playerStatus[login_info.player.id].x = login_info.player.x;
+	playerStatus[login_info.player.id].y = login_info.player.y;
+	playerStatus[login_info.player.id].visible = login_info.player.visible;
+
+}
+
+void InitDataSetting(INIT_PACKET& init_info)
+{
+	keyinput_info.m_id = my_id;
+	keyinput_info.state_type = PLAYER::IDLE;
+
+	for (int i = 0; i < PATTERNCNT; ++i)
+	{
+		PatternStatus[i].x = init_info.pattern_temp[i].x;
+		PatternStatus[i].y = init_info.pattern_temp[i].y;
+		PatternStatus[i].x_size = init_info.pattern_temp[i].x_size;
+		PatternStatus[i].y_size = init_info.pattern_temp[i].y_size;
+		PatternStatus[i].id = init_info.pattern_temp[i].id;
+	}
+	for (int i = 0; i < BUTTONCNT; ++i)
+	{
+		ButtonStatus[i].x = init_info.button[i].x;
+		ButtonStatus[i].y = init_info.button[i].y;
+		ButtonStatus[i].x_size = init_info.button[i].x_size;
+		ButtonStatus[i].y_size = init_info.button[i].y_size;
+		ButtonStatus[i].id = init_info.button[i].id;
+	}
+
+	//버튼의 초기 위치 셋팅
+
+	timelap = init_info.timelap;
+	gamestart = init_info.gameStart;
+}

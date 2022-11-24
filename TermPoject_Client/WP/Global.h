@@ -30,3 +30,4 @@ bool visible = false; // 초기값은 문 안보이게, 문양 다 먹게되면 true로
 short currentclientcnt = 0; // 현재 접속한 클라이언트 개수
 int CurrentPlayerid =0; //해당client의 아이디값 
 bool isButtonDown = false;
+bool gamestart = false;

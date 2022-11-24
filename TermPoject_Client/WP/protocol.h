@@ -2,6 +2,7 @@
 
 struct LOGIN_PACKET {
 	Player player{};
+	short cli_id;
 };
 
 struct INIT_PACKET {
