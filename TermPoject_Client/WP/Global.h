@@ -19,10 +19,10 @@ bool randomCheck[FLOORCNT]{ false, }; // 동일한위치에 없도록하게 중복 없이
 bool isPatternClear[PATTERNCNT]{ false, }; //패턴 5개를 다 획득했는지 알려주기 위한 것
 
 static int jumpCnt = 0; // 더블 점프 체크 
-static float gravity = 0.25f; // 중력값
+static float gravity = 0.025f; // 중력값
 static float dropSpeed = 0.f; // 떨어지는 값
 static float FiredropSpeed[FIRECNT]{ 0.f }; // 세로 불 떨어지는 값 - 지금 가로가 멈췄다 빨라졌다 하는게 그냥 이거 공통으로 줘서 그런거고 가로불도 세로불처럼 할 수 있음.
-static float Firegravity[FIRECNT]{ 0.1f, 0.15f, 0.2f, 0.25f }; // 불 중력값 다 다르게 주려고
+static float Firegravity[FIRECNT]{ 0.01f, 0.015f, 0.02f, 0.025f }; // 불 중력값 다 다르게 주려고
 static float moveSpeed = 1.f; // 좌 우 움직임 스피드
 unsigned int timelap{}; // 시간측정을 위한 변수
 bool gamestart = false;
