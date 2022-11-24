@@ -46,16 +46,6 @@ void IsCollisionFire(short currentId);
 void LoginDataSetting(int m_id);
 void LoginSendPacket(int Client_count);
 
-void InitSettingObj();
-void UpdatePlayer(short currentId);
-void UpdateFire();
-void UpdatePattern(short currentId);
-void IsCollisionFloor(short currentId);
-void IsCollisionThorn(short currentId);
-void IsCollisionFire(short currentId);
-void LoginDataSetting(int m_id);
-void LoginSendPacket(int Client_count);
-
 DWORD WINAPI Client_Thread(LPVOID arg);
 DWORD WINAPI Update_Thread(LPVOID arg);
 
