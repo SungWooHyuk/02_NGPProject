@@ -53,9 +53,12 @@ DWORD WINAPI Client_Thread(LPVOID arg)
 {
 	int m_id = Client_count;
 
-	Client_count++;
-
 	client_sock[m_id] = (SOCKET)arg;
+	SOCKADDR_IN clientaddr;
+	int addrlen;
+	//char buf[BUFSIZE];
+	addrlen = sizeof(clientaddr);
+	getpeername(client_sock[m_id], (SOCKADDR*)&clientaddr, &addrlen);
 
 	//soo
 	if (logincheck[m_id] == false)
@@ -67,46 +70,149 @@ DWORD WINAPI Client_Thread(LPVOID arg)
 
 	while (1) {
 
-		WaitForSingleObject(Ec_hThread[m_id], INFINITE);
+		logincheck[m_id] = true;
 
+	}
+
+	if (Client_count == 1)
+	{
+		send(client_sock[m_id], (char*)&login_info[m_id], sizeof(LOGIN_PACKET), 0);
+	}
+	else if (Client_count == 2)
+	{
+		for (int i = 0; i < 2; ++i)
+		{
+			for (int j = 0; j < 2; ++j)
+			{
+				send(client_sock[i], (char*)&login_info[j], sizeof(LOGIN_PACKET), 0);
+			}
+		}
+	}
+	else if (Client_count == 3)
+	{
+		for (int i = 0; i < 3; ++i)
+		{
+			for (int j = 0; j < 3; ++j)
+			{
+				send(client_sock[i], (char*)&login_info[j], sizeof(LOGIN_PACKET), 0);
+			}
+		}
+
+	
+	}
+	
+
+	// 리시브 후 센드 한번 해주고
+
+	while (1) {
+		logincheck[m_id] = true;
+
+	}
+
+	if (Client_count == 1)
+	{
+		send(client_sock[m_id], (char*)&login_info[m_id], sizeof(LOGIN_PACKET), 0);
+	}
+	else if (Client_count == 2)
+	{
+		for (int i = 0; i < 2; ++i)
+		{
+			for (int j = 0; j < 2; ++j)
+			{
+			for (int i = 0; i < MAXCLIENT; ++i)
+			{
+				send(client_sock[i], (char*)&init, sizeof(init), 0);
+			}
+			Initcheck = true;
+		}
+		for (int i = 0; i < 3; ++i)
+		UpdateFire();
+			{
+		for (int i = 0; i < FIRECNT; ++i)
+		{
+			update_packet.H_FireTemp[i].x = W_FireStatus[i].x;
+			update_packet.W_FireTemp[i].y = H_FireStatus[i].y;
+		}
+
+		for (int i = 0; i < MAXCLIENT; ++i)
+		{
+
+			recv(client_sock[i], (char*)&key_input, sizeof(KEYINPUT_PAKCET), 0);
+			playerStatus[key_input.m_id].state_type = key_input.state_type;
+			playerStatus[key_input.m_id].jump = key_input.jump;
+
+			EnterCriticalSection(&cs);
+			UpdatePlayer(key_input.m_id);
+			LeaveCriticalSection(&cs);
+			update_packet.PlayerTemp[key_input.m_id].x = playerStatus[key_input.m_id].x;
+			update_packet.PlayerTemp[key_input.m_id].y = playerStatus[key_input.m_id].y;
+			UpdatePlayer(i);  
+			send(client_sock[i], (char*)&update_packet, sizeof(update_packet), 0);
+		}
+	{
+		ResetEvent(E_hThread[0]);
+		ResetEvent(E_hThread[1]);
+		ResetEvent(E_hThread[2]);
+		SetEvent(Ec_hThread[0]);
+		SetEvent(Ec_hThread[1]);
+		SetEvent(Ec_hThread[2]);
+	}
+	return 0;
+}
+		//fire 업데이트 부분 
+		UpdateFire();
+	else if (Client_count == 3)
+		
+		
+		for (int i = 0; i < MAXCLIENT; ++i) {
+			//여기에선 clientThread에서 키값 입력 받고 플레이어3명의 위치 모두 바꿔주었기 때문에 충돌 여부 확인 가능
+			IsCollisionFloor(i);
+			IsCollisionThorn(i);
+			IsCollisionFire(i);
+			//pattern 업데이트 부분 -> 여기서 진행 
+			UpdatePattern(i); //충돌처리랑 위치 이동 모두 여기서 할것임 
+		}
+		
+		//send;
+
+		update_packet.gamemodestate = 0;
+		update_packet.timelap -= 1;
 		//수행하고
-
-		SetEvent(E_hThread[m_id]);
+		for (int i = 0; i < MAXCLIENT; ++i)
+		{
+			send(client_sock[i], (char*)&update_packet, sizeof(update_packet), 0);
+		}
 		ResetEvent(Ec_hThread[m_id]);
 
 	}
 	return 0;
 }
-
-DWORD WINAPI Update_Thread(LPVOID arg)
-{
-	DWORD retval;
-
-	while (1) {
-
-		int StartTime = (int)GetTickCount64();
-		while ((GetTickCount64() - StartTime) <= 10) {
-			/*프레임조절 */
+			for (int i = 0; i < MAXCLIENT; ++i)
+			{
+				send(client_sock[i], (char*)&init, sizeof(init), 0);
+			}
+			Initcheck = true;
 		}
 
-
-		retval = WaitForMultipleObjects(3, E_hThread, TRUE, INFINITE);
-
-		if (Initcheck == false)
+		UpdateFire();
+		while ((GetTickCount64() - StartTime) <= 10) {
+		for (int i = 0; i < FIRECNT; ++i)
 		{
-			init.gameStart = true;
-			init.timelap = 50;
-			for (int i = 0; i < PATTERNCNT; ++i)
-			{
-				init.pattern_temp[i].x = PatternStatus[i].x;
-				init.pattern_temp[i].y = PatternStatus[i].y;
-				init.pattern_temp[i].x_size = PatternStatus[i].x_size;
-				init.pattern_temp[i].y_size = PatternStatus[i].y_size;
+			update_packet.H_FireTemp[i].x = W_FireStatus[i].x;
+			update_packet.W_FireTemp[i].y = H_FireStatus[i].y;
+		}
 
-			}
+		for (int i = 0; i < MAXCLIENT; ++i)
+		{
+
+			cli_Thread = CreateThread(NULL, 0, Client_Thread, (LPVOID)client_sock, 0, 0);
+			UpdatePlayer(key_input.m_id);
+			LeaveCriticalSection(&cs);
+			update_packet.PlayerTemp[key_input.m_id].x = playerStatus[key_input.m_id].x;
+			update_packet.PlayerTemp[key_input.m_id].y = playerStatus[key_input.m_id].y;
 			for (int i = 0; i < BUTTONCNT; ++i)
-			{
-				init.button[i].x = ButtonStatus[i].x;
+			send(client_sock[i], (char*)&update_packet, sizeof(update_packet), 0);
+		}
 				init.button[i].y = ButtonStatus[i].y;
 				init.button[i].x_size = ButtonStatus[i].x_size;
 				init.button[i].y_size = ButtonStatus[i].y_size;
@@ -130,7 +236,11 @@ DWORD WINAPI Update_Thread(LPVOID arg)
 		for (int i = 0; i < MAXCLIENT; ++i)
 		{
 
-			recv(client_sock[i], (char*)&key_input, sizeof(KEYINPUT_PAKCET), 0);
+
+
+			cli_Thread = CreateThread(NULL, 0, Client_Thread, (LPVOID)client_sock, 0, &Threadid[cnt]);
+
+			if (hThread == NULL) {
 			playerStatus[key_input.m_id].state_type = key_input.state_type;
 			playerStatus[key_input.m_id].jump = key_input.jump;
 
@@ -143,15 +253,17 @@ DWORD WINAPI Update_Thread(LPVOID arg)
 			send(client_sock[i], (char*)&update_packet, sizeof(update_packet), 0);
 		}
 
-		ResetEvent(E_hThread[0]);
-		ResetEvent(E_hThread[1]);
-		ResetEvent(E_hThread[2]);
-		SetEvent(Ec_hThread[0]);
-		SetEvent(Ec_hThread[1]);
-		SetEvent(Ec_hThread[2]);
+			ResetEvent(E_hThread[0]);
+			ResetEvent(E_hThread[1]);
+			ResetEvent(E_hThread[2]);
+			SetEvent(Ec_hThread[0]);
+			SetEvent(Ec_hThread[1]);
+			SetEvent(Ec_hThread[2]);
+		}
+		return 0;
 	}
-	return 0;
 }
+
 int main(int argc, char* argv[])
 {
 	int retval;
@@ -163,7 +275,7 @@ int main(int argc, char* argv[])
 	SOCKET listen_sock = socket(AF_INET, SOCK_STREAM, 0);
 
 	SOCKADDR_IN serveraddr;
-	ZeroMemory(&serveraddr, sizeof(serveraddr));
+			cli_Thread = CreateThread(NULL, 0, Client_Thread, (LPVOID)client_sock, 0, 0);
 	serveraddr.sin_family = AF_INET;
 	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	serveraddr.sin_port = htons(SERVERPORT);
@@ -383,23 +495,45 @@ void InitSettingObj() {
 	// 바닥 위치 셋팅
 	floorStatus[0] = Object(0, 120, 170, 158, 30);
 	floorStatus[1] = Object(1, 100, 550, 158, 30);
-	floorStatus[2] = Object(2, 370, 280, 158, 30);
+	update_packet.PlayerTemp[m_id].id = m_id;
+	update_packet.PlayerTemp[m_id].x = playerStatus[m_id].x;
+	update_packet.PlayerTemp[m_id].y = playerStatus[m_id].y;
+	update_packet.PlayerTemp[m_id].x_size = 24;
+	update_packet.PlayerTemp[m_id].y_size = 28;
+	update_packet.PlayerTemp[m_id].state_type = playerStatus[m_id].state_type;
+	update_packet.PlayerTemp[m_id].visible = true;
 	floorStatus[3] = Object(3, 360, 510, 158, 30);
-	floorStatus[4] = Object(4, 640, 390, 158, 30);
-	floorStatus[5] = Object(5, 600, 600, 158, 30);
-	floorStatus[6] = Object(6, 820, 280, 158, 30);
+	playerStatus[m_id].CollidBox = RECT_OBJECT(playerStatus[m_id].x, playerStatus[m_id].y, 24, 28);
 	floorStatus[7] = Object(7, 850, 510, 158, 30);
-	floorStatus[8] = Object(8, 1030, 140, 158, 30);
+	logincheck[m_id] = true;
+}
 	floorStatus[9] = Object(9, 1050, 600, 158, 30);
-	//collisionBox생성해줌 -> 고정 
-	for (int i = 0; i < FLOORCNT; ++i) {
-		floorStatus[i].CollidBox = RECT_OBJECT(floorStatus[i].x, floorStatus[i].y, floorStatus[i].x_size, floorStatus[i].y_size);
+void LoginSendPacket(int Client_count)
+{
+	if (Client_count == 1)
+	{
+		send(client_sock[0], (char*)&login_info[0], sizeof(LOGIN_PACKET), 0);
 	}
-
-	// 첫 가시 위치 바뀔일 없음 
-	ThornStatus[0] = Object(0, 0, 630, 145, 55);
-	ThornStatus[1] = Object(1, 145, 630, 145, 55);
-	ThornStatus[2] = Object(2, 290, 630, 145, 55);
+	else if (Client_count == 2)
+	{
+		for (int i = 0; i < 2; ++i)
+		{
+			for (int j = 0; j < 2; ++j)
+			{
+				send(client_sock[i], (char*)&login_info[j], sizeof(LOGIN_PACKET), 0);
+			}
+		}
+	}
+	else if (Client_count == 3)
+	{
+		for (int i = 0; i < 3; ++i)
+		{
+			for (int j = 0; j < 3; ++j)
+			{
+				login_info[j].cli_id = i;
+				send(client_sock[i], (char*)&login_info[j], sizeof(LOGIN_PACKET), 0);
+			}
+		}
 	ThornStatus[3] = Object(3, 435, 630, 145, 55);
 	ThornStatus[4] = Object(4, 580, 630, 145, 55);
 	ThornStatus[5] = Object(5, 725, 630, 145, 55);
@@ -418,80 +552,58 @@ void InitSettingObj() {
 	H_FireStatus[3] = Object(3, 710, -30, 34, 51);
 	H_FireStatus[4] = Object(4, 935, -30, 34, 51);
 	for (int i = 0; i < FIRECNT; ++i) {
-		H_FireStatus[i].CollidBox = RECT_OBJECT(H_FireStatus[i].x, H_FireStatus[i].y, H_FireStatus[i].x_size, H_FireStatus[i].y_size);
-	}
-
-	// 가로 불 초기값
-	W_FireStatus[0] = Object(0, -30, 47, 51, 34);
-	W_FireStatus[1] = Object(1, -30, 218, 51, 34);
-	W_FireStatus[2] = Object(2, -30, 317, 51, 34);
+void FPSCheck() {
 	W_FireStatus[3] = Object(3, -30, 482, 51, 34);
-	W_FireStatus[4] = Object(4, -30, 573, 51, 34);
+	DWORD currTime = timeGetTime();
+	frameDelta = (currTime - lastTime) * 0.001f;
+	DWORD FPS = 15;                     //15(FPS)라는 숫자가 fps를 결정한다.숫자가 작을수록 더 많은 프레임을 그린다..
 	for (int i = 0; i < FIRECNT; ++i) {
-		W_FireStatus[i].CollidBox = RECT_OBJECT(W_FireStatus[i].x, W_FireStatus[i].y, W_FireStatus[i].x_size, W_FireStatus[i].y_size);
-	}
+	//컴퓨터 성능에 따라 테스트하여가장 느린 fps를 검출한 후 결정한다.
 
-	// 흑백 패턴 초기값 셋팅-> 콜리젼 박스 필요 없음 
-	gs_PatternStatus[0] = Object(0, 1200, 0, 50, 50);
-	gs_PatternStatus[1] = Object(1, 1170, 0, 50, 50);
-	gs_PatternStatus[2] = Object(2, 1140, 0, 50, 50);
-	gs_PatternStatus[3] = Object(3, 1110, 0, 50, 50);
-	gs_PatternStatus[4] = Object(4, 1080, 0, 50, 50);
-
-	// 문 초기값 셋팅 
-	doorstatus = Object(0, 723, 380, 1, 1); //이건 문양 다 먹으면 서버쪽에서 값 계산해서 클라로 보내주면 됨
-	doorstatus.CollidBox = RECT_OBJECT(doorstatus.x, doorstatus.y, doorstatus.x_size, doorstatus.y_size);
-
-
-	// 패턴의 초기 위치 셋팅
-	for (int i = 0; i < PATTERNCNT; ++i)
+	if (frameDelta >= 1 / FPS)
 	{
-		int k = choice_uid(dre); // 랜덤값인데 안겹치게 체크 
-		while (k == 4)
-		{
-			k = choice_uid(dre);
-		}
-		while (1)
-		{
-			if (randomCheck[k] == false) {
-				randomCheck[k] = true;
-				break;
-			}
-			else if (randomCheck[k])
-				k = choice_uid(dre); //이미 true인 곳은 다시 랜덤값 주기 
-		}
+
+		//렌더링 하는 부분.
+		lastTime = currTime;
+	}
+	else {
+		//Sleep(frameDelta - 1 / FPS); //넣어줘도 되고 그냥 주석 처리해도 상관 없음니다.
+
+	update_packet.PlayerTemp[m_id].y_size = 28;
+	update_packet.PlayerTemp[m_id].state_type = playerStatus[m_id].state_type;
+	update_packet.PlayerTemp[m_id].visible = true;
 		PatternStatus[i] = Object(i, floorStatus[k].x + floorStatus[k].x_size / 3, floorStatus[k].y - floorStatus[k].y_size - floorStatus[k].y_size / 2, 50, 50); // 뒤에 + 로 중앙으로
-		//충돌 영역 위함 
+	playerStatus[m_id].CollidBox = RECT_OBJECT(playerStatus[m_id].x, playerStatus[m_id].y, 24, 28);
 		PatternStatus[i].CollidBox = RECT_OBJECT(PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
-	}
-
-	//버튼 초기 위치 셋팅 - 이건 정확한 값 아니고 노가다로 한번 위치 맞춰봐야함 
-	ButtonStatus[0] = Object(0, 100, 530, 30, 20);
-	ButtonStatus[1] = Object(1, 600, 580, 30, 20);
-	for (int i = 0; i < BUTTONCNT; ++i) {
-		ButtonStatus[i].CollidBox = RECT_OBJECT(ButtonStatus[i].x, ButtonStatus[i].y, ButtonStatus[i].x_size, ButtonStatus[i].y_size);
-	}
+	logincheck[m_id] = true;
 }
-
-void LoginDataSetting(int m_id)
+	//버튼 초기 위치 셋팅 - 이건 정확한 값 아니고 노가다로 한번 위치 맞춰봐야함 
+void LoginSendPacket(int Client_count)
 {
-	login_info[m_id].player.id = m_id;
-	login_info[m_id].player.state_type = PLAYER::IDLE;
-	login_info[m_id].player.x = 640 + (Client_count * 20);
-	login_info[m_id].player.y = 360;
-	login_info[m_id].player.visible = true;
-
-	playerStatus[m_id].x = 640 + (Client_count * 20);
-	playerStatus[m_id].y = 360;
-	playerStatus[m_id].x_size = 24;
-	playerStatus[m_id].y_size = 28;
-	playerStatus[m_id].state_type = PLAYER::IDLE;
-	playerStatus[m_id].id = m_id;
-
-	update_packet.PlayerTemp[m_id].id = m_id;
-	update_packet.PlayerTemp[m_id].x = playerStatus[m_id].x;
-	update_packet.PlayerTemp[m_id].y = playerStatus[m_id].y;
-	update_packet.PlayerTemp[m_id].x_size = 24;
+	if (Client_count == 1)
+	{
+		send(client_sock[0], (char*)&login_info[0], sizeof(LOGIN_PACKET), 0);
+	}
+	else if (Client_count == 2)
+	{
+		for (int i = 0; i < 2; ++i)
+		{
+			for (int j = 0; j < 2; ++j)
+			{
+				send(client_sock[i], (char*)&login_info[j], sizeof(LOGIN_PACKET), 0);
+			}
+		}
+	}
+	else if (Client_count == 3)
+	{
+		for (int i = 0; i < 3; ++i)
+		{
+			for (int j = 0; j < 3; ++j)
+			{
+				login_info[j].cli_id = i;
+				send(client_sock[i], (char*)&login_info[j], sizeof(LOGIN_PACKET), 0);
+			}
+		}
 	update_packet.PlayerTemp[m_id].y_size = 28;
 	update_packet.PlayerTemp[m_id].state_type = playerStatus[m_id].state_type;
 	update_packet.PlayerTemp[m_id].visible = true;
