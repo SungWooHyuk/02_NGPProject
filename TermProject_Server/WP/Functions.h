@@ -14,6 +14,7 @@ public:
 	short x_size{}; // x사이즈
 	short y_size{}; // y사이즈 
 	RECT CollidBox;// 충돌 처리를 위한 박스 
+	
 };
 
 class Player :public Object
@@ -31,5 +32,6 @@ public:
 public:
 	bool visible = false;
 	PLAYER::Player_State state_type{}; // 상태에 대한 type  
+
 };
 
