@@ -8,14 +8,3 @@ namespace PLAYER {
 		DEAD
 	};
 }
-
-namespace OBECJT
-{
-	enum Objet_State {
-		Fire,
-		Floor,
-		Door,
-		Pattern,
-		Player
-	};
-}

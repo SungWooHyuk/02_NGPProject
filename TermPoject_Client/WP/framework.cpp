@@ -4,8 +4,9 @@
 #include <winsock2.h> 
 #include <WS2tcpip.h>
 #include <iostream>
-#include <random>
 #include <Windows.h> 
+#include <tchar.h>
+#include <stdio.h>
 #include "framework.h"
 
 #define SERVERIP   "127.0.0.1"
@@ -14,23 +15,20 @@
 
 using namespace std;
 
-random_device rd; // 시드값
-default_random_engine dre{ rd() }; // 초기 조건은 추적 불가능하다.
-uniform_int_distribution<int> x_uid{ 50, 1200 }; // 불 x축 랜덤값 
-uniform_int_distribution<int> y_uid{ 30, 720 }; // 불 y축 랜덤값  
-uniform_int_distribution<int> choice_uid{ 0,9 }; // 문양 위치 랜덤값 
+short my_id; // 내 아이디
 
+LOGIN_PACKET login_info;
+INIT_PACKET  Init_info;
 
 SOCKET sock;
-
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Name";
 LPCTSTR lpszWindowName = L"WP Game";
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 DWORD WINAPI Thread_client(LPVOID arg);
 HWND hWnd; // state에서 사용하려고 전역으로 뺌
-LOGIN_PACKET login_info;
-INIT_PACKET  Init_info;
+
+
 // 소켓 함수 오류 출력 후 종료
 void err_quit(const char* msg)
 {
@@ -58,48 +56,290 @@ void err_display(const char* msg)
 	LocalFree(lpMsgBuf);
 }
 
+void LoginDataSetting(LOGIN_PACKET& login_info);
+void InitDataSetting(INIT_PACKET& init_info);
+void InitSettingObj();
+void UpdateTime(OBJECT_UPDATE_PACKET& update_info);
+void UpdatePlayer(OBJECT_UPDATE_PACKET& update_info);
+void UpdatePattern(OBJECT_UPDATE_PACKET& update_info);
+void UpdateFire(OBJECT_UPDATE_PACKET& update_info);
+void Rendering(HDC memdc1);
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
+{
+	MSG Message;
+	WNDCLASSEX WndClass;
+	g_hInst = hInstance;
+	WndClass.cbSize = sizeof(WndClass);
+	WndClass.style = CS_HREDRAW | CS_VREDRAW;
+	WndClass.lpfnWndProc = (WNDPROC)WndProc;
+	WndClass.cbClsExtra = 0;
+	WndClass.cbWndExtra = 0;
+	WndClass.hInstance = hInstance;
+	WndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+	WndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+	WndClass.hbrBackground =
+		(HBRUSH)GetStockObject(WHITE_BRUSH);
+	WndClass.lpszMenuName = NULL;
+	WndClass.lpszClassName = lpszClass;
+	WndClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
+	RegisterClassEx(&WndClass);
+	hWnd = CreateWindow
+	(lpszClass, lpszWindowName,
+		WS_OVERLAPPEDWINDOW,
+		0, 0, 1280, 720, // 1280 , 720 화면사이즈
+		NULL, (HMENU)NULL,
+		hInstance, NULL);
+	ShowWindow(hWnd, nCmdShow);
+
+	CreateThread(NULL, 0, Thread_client, NULL, 0, NULL);
+
+	UpdateWindow(hWnd);
+
+	while (GetMessage(&Message, 0, 0, 0)) {
+		TranslateMessage(&Message);
+		DispatchMessage(&Message);
+	}
+
+	return Message.wParam;
+}
+
+DWORD WINAPI Thread_client(LPVOID arg) {
+
+	int retval;
+
+	// 윈속 초기화
+	WSADATA wsa;
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
+		return 1;
+
+	// socket()
+	sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (sock == INVALID_SOCKET) err_quit("socket()");
+
+	// connect()
+	SOCKADDR_IN serveraddr;
+	ZeroMemory(&serveraddr, sizeof(serveraddr));
+	serveraddr.sin_family = AF_INET;
+	serveraddr.sin_addr.s_addr = inet_addr(SERVERIP);
+	serveraddr.sin_port = htons(SERVERPORT);
+	retval = connect(sock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
+	if (retval == SOCKET_ERROR) err_quit("connect()");
+
+	while (1) {
+		retval = recv(sock, (char*)&login_info, sizeof(LOGIN_PACKET), MSG_WAITALL);
+		CurrentPlayerid = login_info.player.id;
+		LoginDataSetting(login_info);
+		//3명 다 들어오고 play 시작
+		if (CurrentPlayerid == 2) {
+			my_id = login_info.cli_id;
+			break;
+		}
+	}
+	
+	retval = recv(sock, (char*)&Init_info, sizeof(INIT_PACKET), 0);
+	InitDataSetting(Init_info);
+
+	//gamemodestate를 처음에 -1로 뒀다가 여기서 0으로 바뀌면 시작하도록 하기 
+	//gamemodestate = Init_info.gameStart; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어
+
+	while (1) {
+		if (keyLayout[VK_LEFT] == keyLayout[VK_RIGHT] ) keyinput_info.state_type = PLAYER::Player_State::IDLE; // 이동
+		else if (keyLayout[VK_LEFT]) keyinput_info.state_type = PLAYER::Player_State::LEFT;
+		else if (keyLayout[VK_RIGHT]) keyinput_info.state_type = PLAYER::Player_State::RIGHT;
+
+		if (keyLayout[VK_SPACE])
+		{
+			keyinput_info.jump = true;
+		}
+	
+		send(sock, (char*)&keyinput_info, sizeof(KEYINPUT_PAKCET), 0);
+		
+		keyLayout[VK_SPACE] = 0;
+		keyinput_info.jump = false;
+
+		retval = recv(sock, (char*)&update_info, sizeof(OBJECT_UPDATE_PACKET), 0);
+		
+		UpdateFire(update_info);
+		UpdatePlayer(update_info);
+		//UpdatePattern(update_info);
+		//UpdateTime(update_info);
+		visible = update_info.visible;
+		gamemodestate = update_info.gamemodestate;
+	}
 
 
-//데이터 받아와서 값 변경해주는 부분  
-void UpdateFire(OBJECT_UPDATE_PACKET& update_info) { 
+	closesocket(sock);
+
+	// 윈속 종료
+	WSACleanup();
+	return 0;
+}
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	PAINTSTRUCT ps;
+	static HDC hdc, memdc1, memdc2;
+	static HBITMAP hBitmap1, hBitmap2;
+	static HBRUSH hBrush, oldBrush;
+
+	SYSTEMTIME st;
+	static TCHAR sTime[128] = _T("");
+	static RECT rrtt = { 100,100,400,120 };
+
+	switch (uMsg) {
+	case WM_TIMER:
+		switch (wParam)
+		{
+		case 1:
+			//GetLocalTime(&st);
+			_stprintf_s(sTime, _T("남은 시간은 %d입니다."), timelap);
+			InvalidateRect(hWnd, NULL, false); // 화면 갈아주기
+			return 0;
+			break;
+		}
+		break;
+
+	case WM_CREATE: // 처음 초기화 해주는곳
+		AllocConsole();
+		_tfreopen(_T("CONOUT$"), _T("w"), stdout);
+		_tfreopen(_T("CONIN$"), _T("r"), stdin);
+		_tfreopen(_T("CONERR$"), _T("w"), stderr);
+
+		Image(); // 이미지함수 불러서 초기화
+
+		InitSettingObj();
+
+		SetTimer(hWnd, 1, 10, NULL); // 1번 타이머 , 0.01초마다 갱신하겠다는거
+		break;
+
+	case WM_KEYDOWN:
+		if (wParam == VK_LEFT) {
+			keyLayout[VK_LEFT] = 1; // 좌
+		}
+		else if (wParam == VK_RIGHT) {
+			keyLayout[VK_RIGHT] = 1; // 우
+		}
+		else if (wParam == VK_SPACE) { 
+			keyLayout[VK_SPACE] = 1;
+		}
+
+		InvalidateRect(hWnd, NULL, false); // 화면 초기화
+
+		break;
+	case WM_KEYUP: // 키 떼면 불러지는곳
+		if (wParam == VK_LEFT) {
+			//cout << "여기가 불리나여? " << endl;
+			keyLayout[VK_LEFT] = 0;
+		}
+		else if (wParam == VK_RIGHT) {
+			keyLayout[VK_RIGHT] = 0;
+		}
+		break;
+	case WM_LBUTTONDOWN: // 마우스 좌클릭
+		InvalidateRect(hWnd, NULL, false);
+		break;
+
+	case WM_PAINT:
+	{
+		hdc = BeginPaint(hWnd, &ps);
+		memdc1 = CreateCompatibleDC(hdc);
+		hBitmap1 = CreateCompatibleBitmap(hdc, 1280, 720);
+		HBITMAP hOldBitmap = (HBITMAP)SelectObject(memdc1, hBitmap1);
+
+		Rendering(memdc1);
+
+		SetBkMode(memdc1, TRANSPARENT);
+		SetTextColor(memdc1, RGB(255, 255, 255));
+		TextOut(memdc1, 540, 50, sTime, _tcslen(sTime));
+
+		BitBlt(hdc, 0, 0, 1280, 720, memdc1, 0, 0, SRCCOPY);
+
+		DeleteObject(SelectObject(memdc1, hOldBitmap)); // 딜리트
+		DeleteObject(hBitmap1);
+		DeleteDC(memdc1);
+		DeleteDC(hdc);
+
+		EndPaint(hWnd, &ps);
+	}
+	break;
+
+	case WM_DESTROY: // 파괴될때 불려지는곳
+		KillTimer(hWnd, 1);
+		PostQuitMessage(0);
+		DeleteObject(SelectObject(memdc1, hBitmap1));
+		DeleteDC(memdc1);
+
+		break;
+	}
+
+	return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+void LoginDataSetting(LOGIN_PACKET& login_info)
+{
+	playerStatus[login_info.player.id].id = login_info.player.id;
+	playerStatus[login_info.player.id].x = login_info.player.x;
+	playerStatus[login_info.player.id].y = login_info.player.y;
+	playerStatus[login_info.player.id].visible = login_info.player.visible;
+
+}
+
+void InitDataSetting(INIT_PACKET& init_info)
+{
+	keyinput_info.m_id = my_id;
+	keyinput_info.state_type = PLAYER::IDLE;
+
+	for (int i = 0; i < PATTERNCNT; ++i)
+	{
+		PatternStatus[i].x = init_info.pattern_temp[i].x;
+		PatternStatus[i].y = init_info.pattern_temp[i].y;
+		PatternStatus[i].x_size = init_info.pattern_temp[i].x_size;
+		PatternStatus[i].y_size = init_info.pattern_temp[i].y_size;
+		PatternStatus[i].id = init_info.pattern_temp[i].id;
+	}
+	for (int i = 0; i < BUTTONCNT; ++i)
+	{
+		ButtonStatus[i].x = init_info.button[i].x;
+		ButtonStatus[i].y = init_info.button[i].y;
+		ButtonStatus[i].x_size = init_info.button[i].x_size;
+		ButtonStatus[i].y_size = init_info.button[i].y_size;
+		ButtonStatus[i].id = init_info.button[i].id;
+	}
+
+	timelap = init_info.timelap;
+	gamestart = init_info.gameStart;
+}
+
+void UpdateFire(OBJECT_UPDATE_PACKET& update_info) {
 	//불 위치 업데이트
 	for (int i = 0; i < FIRECNT; ++i) {
-		W_FireStatus[i].x = update_info.W_FireTemp[i].x;   
-		W_FireStatus[i].y = update_info.W_FireTemp[i].y;
-		FireStatus[i].x = update_info.H_FireTemp[i].x;
-		FireStatus[i].y = update_info.H_FireTemp[i].y;
-		W_FireStatus[i].CollidBox = RECT_OBJECT(W_FireStatus[i].x, W_FireStatus[i].y, W_FireStatus[i].x_size, W_FireStatus[i].y_size);
-		FireStatus[i].CollidBox = RECT_OBJECT(FireStatus[i].x, FireStatus[i].y, FireStatus[i].x_size, FireStatus[i].y_size);
+		W_FireStatus[i].x = update_info.H_FireTemp[i].x;
+		FireStatus[i].y = update_info.W_FireTemp[i].y;
 	}
 }
 
 
 void UpdatePattern(OBJECT_UPDATE_PACKET& update_info) {
-	//패턴 위치 업데이트
 	for (int i = 0; i < PATTERNCNT; ++i) {
 		PatternStatus[i].x = update_info.PatternTemp[i].x;
 		PatternStatus[i].y = update_info.PatternTemp[i].y;
-		PatternStatus[i].CollidBox = RECT_OBJECT(PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
 	}
 }
 
 void UpdatePlayer(OBJECT_UPDATE_PACKET& update_info) {
-	//모든 플레이어 위치 업데이트
 	for (int i = 0; i < MAXCLIENT; ++i) {
 		playerStatus[i].x = update_info.PlayerTemp[i].x;
 		playerStatus[i].y = update_info.PlayerTemp[i].y;
-		playerStatus[i].CollidBox = RECT_OBJECT(playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); 
 	}
 }
- 
+
+
 void UpdateTime(OBJECT_UPDATE_PACKET& update_info) {
-	timelap = update_info.timelap; 
+	timelap = update_info.timelap;
 }
 
-
 void InitSettingObj() {
-	// -  server로 부터 받아와야 하는 객체들은 id값 모두 0으로 했음
-	// 플레이어 셋팅
 	playerStatus[0] = Player(0, 0, 0, 24, 28, PLAYER::IDLE, false);
 	playerStatus[1] = Player(0, 0, 0, 24, 28, PLAYER::IDLE, false);
 	playerStatus[2] = Player(0, 0, 0, 24, 28, PLAYER::IDLE, false);
@@ -115,11 +355,6 @@ void InitSettingObj() {
 	floorStatus[7] = Object(7, 850, 510, 158, 30);
 	floorStatus[8] = Object(8, 1030, 140, 158, 30);
 	floorStatus[9] = Object(9, 1050, 600, 158, 30);
-	//collisionBox생성해줌 -> 고정 
-	for (int i = 0; i < FLOORCNT; ++i) {
-		floorStatus[i].CollidBox = RECT_OBJECT(floorStatus[i].x, floorStatus[i].y, floorStatus[i].x_size, floorStatus[i].y_size);
-	}
-
 
 	// 첫 가시 위치 바뀔일 없음 
 	ThornStatus[0] = Object(0, 0, 630, 145, 55);
@@ -131,38 +366,27 @@ void InitSettingObj() {
 	ThornStatus[6] = Object(6, 870, 630, 145, 55);
 	ThornStatus[7] = Object(7, 1015, 630, 145, 55);
 	ThornStatus[8] = Object(8, 1160, 630, 145, 55);
-	//고정
-	for (int i = 0; i < THORNCNT; ++i) {
-		ThornStatus[i].CollidBox = RECT_OBJECT(ThornStatus[i].x, ThornStatus[i].y, ThornStatus[i].x_size, ThornStatus[i].y_size);
-	}
 
 	// 세로 불 초기값
-	FireStatus[0] = Object(0, 70, -30, 34, 51);
-	FireStatus[1] = Object(1, 380, -30, 34, 51);
-	FireStatus[2] = Object(2, 500, -30, 34, 51);
-	FireStatus[3] = Object(3, 710, -30, 34, 51);
-	FireStatus[4] = Object(4, 935, -30, 34, 51);
-	for (int i = 0; i < FIRECNT; ++i) {
-		FireStatus[i].CollidBox = RECT_OBJECT(FireStatus[i].x, FireStatus[i].y, FireStatus[i].x_size, FireStatus[i].y_size);
-	}
+	FireStatus[0] = Object(0, 70, -50, 34, 51);
+	FireStatus[1] = Object(1, 380, -50, 34, 51);
+	FireStatus[2] = Object(2, 500, -50, 34, 51);
+	FireStatus[3] = Object(3, 710, -50, 34, 51);
+	FireStatus[4] = Object(4, 935, -50, 34, 51);
 
 	// 가로 불 초기값
-	W_FireStatus[0] = Object(0, -30, 47, 51, 34);
-	W_FireStatus[1] = Object(1, -30, 218, 51, 34);
-	W_FireStatus[2] = Object(2, -30, 317, 51, 34);
-	W_FireStatus[3] = Object(3, -30, 482, 51, 34);
-	W_FireStatus[4] = Object(4, -30, 573, 51, 34);
-	for (int i = 0; i < FIRECNT; ++i) {
-		W_FireStatus[i].CollidBox = RECT_OBJECT(W_FireStatus[i].x, W_FireStatus[i].y, W_FireStatus[i].x_size, W_FireStatus[i].y_size);
-	}
+	W_FireStatus[0] = Object(0, -55, 47, 51, 34);
+	W_FireStatus[1] = Object(1, -55, 218, 51, 34);
+	W_FireStatus[2] = Object(2, -55, 317, 51, 34);
+	W_FireStatus[3] = Object(3, -55, 482, 51, 34);
+	W_FireStatus[4] = Object(4, -55, 573, 51, 34);
 
 	// 패턴의 초기 위치 셋팅
-	PatternStatus[0] = Object(0, -10, 0, 50, 50);
-	PatternStatus[1] = Object(0, -10, 0, 50, 50);
-	PatternStatus[2] = Object(0, -10, 0, 50, 50);
-	PatternStatus[3] = Object(0, -10, 0, 50, 50);
-	PatternStatus[4] = Object(0, -10, 0, 50, 50);
-	
+	PatternStatus[0] = Object(0, -50, -50, 50, 50);
+	PatternStatus[1] = Object(0, -50, -50, 50, 50);
+	PatternStatus[2] = Object(0, -50, -50, 50, 50);
+	PatternStatus[3] = Object(0, -50, -50, 50, 50);
+	PatternStatus[4] = Object(0, -50, -50, 50, 50);
 
 	// 흑백 패턴 초기값 셋팅 
 	gs_PatternStatus[0] = Object(0, 1200, 0, 50, 50);
@@ -171,47 +395,37 @@ void InitSettingObj() {
 	gs_PatternStatus[3] = Object(3, 1110, 0, 50, 50);
 	gs_PatternStatus[4] = Object(4, 1080, 0, 50, 50);
 
-
 	// 문 초기값 셋팅 
 	doorstatus = Object(0, 723, 380, 1, 1);
-	doorstatus.CollidBox = RECT_OBJECT(doorstatus.x, doorstatus.y, doorstatus.x_size, doorstatus.y_size);
 
 }
 
-//rendering 은 그대로 Draw로 그려주면 됨.
 void Rendering(HDC memdc1) {
-	if (isGameOver == false) // 게임 안끝나면 이렇게 그려준다
+	if (gamemodestate == 0) // 바꾸기
 	{
-		BackGround.Draw(memdc1, 0, 0, 1280, 720); // 배경
+		BackGround.Draw(memdc1, 0, 0, 1280, 720); 
 
 		//CloseDoor.Draw(memdc1, 680, 305, 73, 85); // 문 원래 크기 
-		if (stage1Clear) {
-			//stage1이 끝나면 문이 생기도록 만들기  
-			//문 위치와 사이즈 셋팅 
+		if (visible) {
+			if (doorstatus.x_size >= 73) doorstatus.x_size = 73;
+			else doorstatus.x_size += 1;
+			if (doorstatus.y_size >= 85) doorstatus.y_size = 85;
+			else doorstatus.y_size += 1;
 
-
-			//if (doorstatus.x_size >= 73) doorstatus.x_size = 73;
-			//else doorstatus.x_size += 1;
-			//if (doorstatus.y_size >= 85) doorstatus.y_size = 85;
-			//else doorstatus.y_size += 1;
-
-			//if (doorstatus.x <= 681) doorstatus.x = 680;
-			//else doorstatus.x -= 0.5;
-			//if (doorstatus.y <= 306) doorstatus.y = 305;
-			//else doorstatus.y -= 0.95;
-			//CloseDoor.Draw(memdc1, doorstatus.x, doorstatus.y, doorstatus.x_size, doorstatus.y_size); // 문 사이즈가 점점 커지도록 그려주기  
-
+			if (doorstatus.x <= 681) doorstatus.x = 680;
+			else doorstatus.x -= 0.5;
+			if (doorstatus.y <= 306) doorstatus.y = 305;
+			else doorstatus.y -= 0.95;
+			CloseDoor.Draw(memdc1, doorstatus.x, doorstatus.y, doorstatus.x_size, doorstatus.y_size); // 문 사이즈가 점점 커지도록 그려주기  
 		}
 		else
 			CloseDoor.Draw(memdc1, doorstatus.x, doorstatus.y, 1, 1); // 처음에는 문 안보여주기  
-
 
 		//player그려주기
 		for (int i = 0; i < MAXCLIENT; ++i) {
 			if (playerStatus[i].visible)
 				PlayerImg.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); // 플레이어 
 		}
-
 
 		//발판 그려주기
 		for (int i = 0; i < FLOORCNT; ++i)
@@ -283,235 +497,12 @@ void Rendering(HDC memdc1) {
 		else
 			ButtonDown.Draw(memdc1, ButtonStatus[0].x, ButtonStatus[0].y, ButtonStatus[0].x_size, ButtonStatus[0].y_size);
 	}
-	else
+	else if(gamemodestate==1) // 실패
 	{
 		GameOver.Draw(memdc1, 0, 0, 1280, 720);
 	}
-}
-
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
-{
-	MSG Message;
-	WNDCLASSEX WndClass;
-	g_hInst = hInstance;
-	WndClass.cbSize = sizeof(WndClass);
-	WndClass.style = CS_HREDRAW | CS_VREDRAW;
-	WndClass.lpfnWndProc = (WNDPROC)WndProc;
-	WndClass.cbClsExtra = 0;
-	WndClass.cbWndExtra = 0;
-	WndClass.hInstance = hInstance;
-	WndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-	WndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-	WndClass.hbrBackground =
-		(HBRUSH)GetStockObject(WHITE_BRUSH);
-	WndClass.lpszMenuName = NULL;
-	WndClass.lpszClassName = lpszClass;
-	WndClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
-	RegisterClassEx(&WndClass);
-	hWnd = CreateWindow
-	(lpszClass, lpszWindowName,
-		WS_OVERLAPPEDWINDOW,
-		0, 0, 1280, 720, // 1280 , 720 화면사이즈
-		NULL, (HMENU)NULL,
-		hInstance, NULL);
-	ShowWindow(hWnd, nCmdShow);
-	CreateThread(NULL, 0, Thread_client, NULL, 0, NULL);
-	UpdateWindow(hWnd);
-
-	while (GetMessage(&Message, 0, 0, 0)) {
-		TranslateMessage(&Message);
-		DispatchMessage(&Message);
-	}
-
-	return Message.wParam;
-}
-
-DWORD WINAPI Thread_client(LPVOID arg) {
-
-	int retval;
-
-	// 윈속 초기화
-	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
-		return 1;
-
-	// socket()
-	sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (sock == INVALID_SOCKET) err_quit("socket()");
-
-	// connect()
-	SOCKADDR_IN serveraddr;
-	ZeroMemory(&serveraddr, sizeof(serveraddr));
-	serveraddr.sin_family = AF_INET;
-	serveraddr.sin_addr.s_addr = inet_addr(SERVERIP);
-	serveraddr.sin_port = htons(SERVERPORT);
-	retval = connect(sock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
-	if (retval == SOCKET_ERROR) err_quit("connect()");
-
-
-	//플레이어정보 저장 
-
-
-
-	while (1) {
-		//
-		retval = recv(sock, (char*)&login_info, sizeof(LOGIN_PACKET), MSG_WAITALL);
-
-		CurrentPlayerid = login_info.player.id;
-		playerStatus[CurrentPlayerid].id = CurrentPlayerid;
-		playerStatus[CurrentPlayerid].x = login_info.player.x;
-		playerStatus[CurrentPlayerid].y = login_info.player.y;
-		playerStatus[CurrentPlayerid].visible = login_info.player.visible;
-		playerStatus->CollidBox = RECT_OBJECT(playerStatus[CurrentPlayerid].x, playerStatus[CurrentPlayerid].y, playerStatus[CurrentPlayerid].x_size, playerStatus[CurrentPlayerid].y_size);
-		//3명 다 들어오고 play 시작
-		if (currentclientcnt == 2) {
-			break;
-		}
-
-
-	}
-	//초기 값 받기 ->  여기서 초기의 패턴과 버튼의 값, 시간, 게임시작 여부 
-	retval = recv(sock, (char*)&Init_info, sizeof(INIT_PACKET), 0);
-	//패턴의 초기 위치 셋팅
-	PatternStatus[0] = Init_info.pattern_temp[0];
-	PatternStatus[1] = Init_info.pattern_temp[1];
-	PatternStatus[2] = Init_info.pattern_temp[2];
-	PatternStatus[3] = Init_info.pattern_temp[3];
-	PatternStatus[4] = Init_info.pattern_temp[4];
-	
-	
-	//버튼의 초기 위치 셋팅
-	ButtonStatus[0] = Init_info.button[0];
-	ButtonStatus[1] = Init_info.button[1];
-	timelap = Init_info.timelap;
-	//gamemodestate를 처음에 -1로 뒀다가 여기서 0으로 바뀌면 시작하도록 하기 
-	//gamemodestate = Init_info.gameStart; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어
-
-	//update값 받기 
-	while (1) {
-		retval = recv(sock, (char*)&update_info, sizeof(OBJECT_UPDATE_PACKET), 0); 
-		//불 위치 업데이트
-		UpdateFire(update_info);
-
-		//패턴 위치 업데이트
-		UpdatePattern(update_info);
-
-		//모든 플레이어 위치 업데이트
-		UpdatePlayer(update_info);
-	
-		//시간
-		UpdateTime(update_info);
-		
-		//문 보이는지 여부
-		visible = update_info.visible;
-
-		//게임모드 상태 
-		gamemodestate = update_info.gamemodestate;
-	}
-	closesocket(sock);
-
-	// 윈속 종료
-	WSACleanup();
-	return 0;
-}
-
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	PAINTSTRUCT ps;
-	static HDC hdc, memdc1, memdc2;
-	static HBITMAP hBitmap1, hBitmap2;
-	static HBRUSH hBrush, oldBrush;
-
-	switch (uMsg) {
-	case WM_TIMER:
-		switch (wParam)
-		{
-		case 1:
-			InvalidateRect(hWnd, NULL, false); // 화면 갈아주기
-			return 0;
-			break;
-		}
-		break;
-
-	case WM_CREATE: // 처음 초기화 해주는곳
-		AllocConsole();
-		_tfreopen(_T("CONOUT$"), _T("w"), stdout);
-		_tfreopen(_T("CONIN$"), _T("r"), stdin);
-		_tfreopen(_T("CONERR$"), _T("w"), stderr);
-
-		Image(); // 이미지함수 불러서 초기화
-
-		InitSettingObj();
-
-		SetTimer(hWnd, 1, 10, NULL); // 1번 타이머 , 0.01초마다 갱신하겠다는거
-		break;
-
-	case WM_KEYDOWN:
-		if (wParam == VK_LEFT) {
-			keyLayout[VK_LEFT] = 1; // 좌
-			keyinput_info.state_type = PLAYER::Player_State::LEFT;  
-		}
-		else if (wParam == VK_RIGHT) {
-			keyLayout[VK_RIGHT] = 1; // 우
-			keyinput_info.state_type = PLAYER::Player_State::RIGHT; 
-		}
-		else if (wParam == VK_SPACE) { // 더블점프가능하게
-			if (jumpCnt < 2) {  //점프 두번까지 가능 
-				isJump = true;
-				jumpCnt++;
-			}
-			keyinput_info.state_type = PLAYER::Player_State::JUMP;//점프 
-		}
-		else {
-			keyinput_info.state_type = PLAYER::Player_State::IDLE;//가만히 
-		}
-		keyinput_info.m_id = CurrentPlayerid;
-		send(sock, (char*)&keyinput_info, sizeof(KEYINPUT_PAKCET), 0);  
-		InvalidateRect(hWnd, NULL, false); // 화면 초기화
-
-		break;
-	case WM_KEYUP: // 키 떼면 불러지는곳
-		if (wParam == VK_LEFT) {
-			keyLayout[VK_LEFT] = 0;
-		}
-		else if (wParam == VK_RIGHT) {
-			keyLayout[VK_RIGHT] = 0;
-		}
-		break;
-
-	case WM_LBUTTONDOWN: // 마우스 좌클릭
-		InvalidateRect(hWnd, NULL, false);
-		break;
-
-	case WM_PAINT:
+	else if (gamemodestate == 2) // 클리어
 	{
-		hdc = BeginPaint(hWnd, &ps);
-		memdc1 = CreateCompatibleDC(hdc);
-		hBitmap1 = CreateCompatibleBitmap(hdc, 1280, 720);
-		HBITMAP hOldBitmap = (HBITMAP)SelectObject(memdc1, hBitmap1);
 
-		Rendering(memdc1);
-
-		BitBlt(hdc, 0, 0, 1280, 720, memdc1, 0, 0, SRCCOPY);
-
-		DeleteObject(SelectObject(memdc1, hOldBitmap)); // 딜리트
-		DeleteObject(hBitmap1);
-		DeleteDC(memdc1);
-		DeleteDC(hdc);
-
-		EndPaint(hWnd, &ps);
 	}
-	break;
-
-	case WM_DESTROY: // 파괴될때 불려지는곳
-		KillTimer(hWnd, 1);
-		PostQuitMessage(0);
-		DeleteObject(SelectObject(memdc1, hBitmap1));
-		DeleteDC(memdc1);
-
-		break;
-	}
-
-	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
-
