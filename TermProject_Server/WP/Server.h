@@ -6,7 +6,7 @@
 
 Player playerStatus[MAXCLIENT]; // 플레이어 상태       
 Object floorStatus[FLOORCNT]; // 바닥상태    
-Object FireStatus[FIRECNT]; // 불 상태       
+Object H_FireStatus[FIRECNT]; // 불 상태       
 Object W_FireStatus[FIRECNT]; // 가로 불 상태
 Object ThornStatus[THORNCNT]; // 가시 상태 
 Object PatternStatus[PATTERNCNT]; // 패턴 상태 

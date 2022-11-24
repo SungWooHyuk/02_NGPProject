@@ -6,21 +6,16 @@ struct LOGIN_PACKET {
 };
 
 struct INIT_PACKET {
-	//short m_id;
-	//short type; // object 분류에 대한 type
-	//short imageSize_x;
-	//short imageSize_y;
-	//short x, y;
 	Object pattern_temp[PATTERNCNT]{}; // pattern object
 	Object button[BUTTONCNT]{}; // button object 
 	unsigned int timelap; // 초기시간
 	bool gameStart; // 게임시작여부
-
 };
 
 struct KEYINPUT_PAKCET {
 	short m_id; // 키를 입력한 플레이어의 id값
 	PLAYER::Player_State  state_type; // 플레이어의 상태 IDLE, JUMP, LEFT, RIGHT 
+	bool jump = false;
 };
 
 struct OBJECT_UPDATE_PACKET {
@@ -33,6 +28,7 @@ struct OBJECT_UPDATE_PACKET {
 	short gamemodestate; //0: 기존 배경,1:gameover창 띄우기,2:gameclear 창 띄우기
 
 };
+
 #pragma pack(pop)
 
 

@@ -30,6 +30,7 @@ public:
 
 public:
 	bool visible = false;
+	bool jump = false;
 	PLAYER::Player_State state_type{}; // 상태에 대한 type  
 };
 
