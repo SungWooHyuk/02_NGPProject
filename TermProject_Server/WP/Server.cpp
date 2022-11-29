@@ -45,6 +45,7 @@ void IsCollisionThorn(short currentId);
 void IsCollisionFire(short currentId);
 void LoginDataSetting(int m_id);
 void LoginSendPacket(int Client_count);
+void PlayerReset(short currentId);
 
 DWORD WINAPI Client_Thread(LPVOID arg);
 DWORD WINAPI Update_Thread(LPVOID arg);
@@ -528,4 +529,13 @@ void LoginSendPacket(int Client_count)
 			}
 		}
 	}
+}
+
+void PlayerReset(short current_Id)
+{
+	cout << current_Id << "번 클라이언트 충돌" << endl;
+	playerStatus[current_Id].state_type = PLAYER::IDLE;
+	playerStatus[current_Id].x = 640;
+	playerStatus[current_Id].y = 0;
+	playerStatus[current_Id].CollidBox = RECT_OBJECT(playerStatus[current_Id].x, playerStatus[current_Id].y, 24, 28);
 }
