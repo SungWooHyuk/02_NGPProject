@@ -21,7 +21,7 @@ static float W_FiredropSpeed[FIRECNT]{ 0.f, }; // 세로 불 떨어지는 값 - 지금 가�
 static float H_FiredropSpeed[FIRECNT]{ 0.f, }; // 세로 불 떨어지는 값 - 지금 가로가 멈췄다 빨라졌다 하는게 그냥 이거 공통으로 줘서 그런거고 가로불도 세로불처럼 할 수 있음.
 static float W_Firegravity[FIRECNT]{ 0.1f, 0.15f, 0.2f, 0.25f ,0.1f}; // 불 중력값 다 다르게 주려고
 static float H_Firegravity[FIRECNT]{ 0.1f, 0.15f, 0.2f, 0.25f ,0.1f}; // 불 중력값 다 다르게 주려고
-unsigned int timelap{}; // 시간측정을 위한 변수
+int timelap = 50; // 시간측정을 위한 변수
 short gamemodestate = 0; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어
 bool visible = false; // 초기값은 문 안보이게, 문양 다 먹게되면 true로
 short currentclientcnt = 0; // 현재 접속한 클라이언트 개수
