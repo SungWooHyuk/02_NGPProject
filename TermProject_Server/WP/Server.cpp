@@ -39,12 +39,18 @@ PLAYER::Player_State state_type;
 void InitSettingObj();
 void UpdatePlayer(short currentId);
 void UpdateFire();
-void UpdatePattern(short currentId);
+void UpdatePattern();
+
 void IsCollisionFloor(short currentId);
 void IsCollisionThorn(short currentId);
 void IsCollisionFire(short currentId);
+void IsCollisionPattern(short currentId);
+
 void LoginDataSetting(int m_id);
 void LoginSendPacket(int Client_count);
+
+void PlayerReset(short currentId);
+void UpdateFPS();
 
 DWORD WINAPI Client_Thread(LPVOID arg);
 DWORD WINAPI Update_Thread(LPVOID arg);
@@ -57,6 +63,7 @@ DWORD WINAPI Client_Thread(LPVOID arg)
 
 	client_sock[m_id] = (SOCKET)arg;
 
+	cout << m_id << "클라이언트 접속" << endl;
 	//soo
 	if (logincheck[m_id] == false)
 	{
@@ -65,16 +72,8 @@ DWORD WINAPI Client_Thread(LPVOID arg)
 
 	LoginSendPacket(Client_count);
 
-	while (1) {
-
-		WaitForSingleObject(Ec_hThread[m_id], INFINITE);
-
-		//수행하고
-
-		SetEvent(E_hThread[m_id]);
-		ResetEvent(Ec_hThread[m_id]);
-
-	}
+	SetEvent(E_hThread[m_id]);
+	
 	return 0;
 }
 
@@ -82,20 +81,20 @@ DWORD WINAPI Update_Thread(LPVOID arg)
 {
 	DWORD retval;
 
+	init.timelap = timelap;
+
 	while (1) {
+		retval = WaitForMultipleObjects(3, E_hThread, TRUE, INFINITE);
 
 		int StartTime = (int)GetTickCount64();
 		while ((GetTickCount64() - StartTime) <= 10) {
 			/*프레임조절 */
 		}
-
-
-		retval = WaitForMultipleObjects(3, E_hThread, TRUE, INFINITE);
-
+		
 		if (Initcheck == false)
 		{
 			init.gameStart = true;
-			init.timelap = 50;
+			
 			for (int i = 0; i < PATTERNCNT; ++i)
 			{
 				init.pattern_temp[i].x = PatternStatus[i].x;
@@ -119,14 +118,15 @@ DWORD WINAPI Update_Thread(LPVOID arg)
 			Initcheck = true;
 		}
 
-		UpdateFire();
-
-		for (int i = 0; i < FIRECNT; ++i)
+		UpdateFPS();
+		update_packet.timelap = timelap;
+		if (timelap <= 0)
 		{
-			update_packet.H_FireTemp[i].x = W_FireStatus[i].x;
-			update_packet.W_FireTemp[i].y = H_FireStatus[i].y;
+			update_packet.gamemodestate = 1;
 		}
-
+		UpdateFire();
+		UpdatePattern();
+		
 		for (int i = 0; i < MAXCLIENT; ++i)
 		{
 
@@ -137,18 +137,12 @@ DWORD WINAPI Update_Thread(LPVOID arg)
 			EnterCriticalSection(&cs);
 			UpdatePlayer(key_input.m_id);
 			LeaveCriticalSection(&cs);
+
 			update_packet.PlayerTemp[key_input.m_id].x = playerStatus[key_input.m_id].x;
 			update_packet.PlayerTemp[key_input.m_id].y = playerStatus[key_input.m_id].y;
 
 			send(client_sock[i], (char*)&update_packet, sizeof(update_packet), 0);
 		}
-
-		ResetEvent(E_hThread[0]);
-		ResetEvent(E_hThread[1]);
-		ResetEvent(E_hThread[2]);
-		SetEvent(Ec_hThread[0]);
-		SetEvent(Ec_hThread[1]);
-		SetEvent(Ec_hThread[2]);
 	}
 	return 0;
 }
@@ -180,13 +174,8 @@ int main(int argc, char* argv[])
 	// 3번째 인자값 FALSE : 비신호 
 	// 이벤트 신호 생성
 	E_hThread[0] = CreateEvent(NULL, TRUE, FALSE, NULL);
-	Ec_hThread[0] = CreateEvent(NULL, TRUE, TRUE, NULL);
-
 	E_hThread[1] = CreateEvent(NULL, TRUE, FALSE, NULL);
-	Ec_hThread[1] = CreateEvent(NULL, TRUE, TRUE, NULL);
-
 	E_hThread[2] = CreateEvent(NULL, TRUE, FALSE, NULL);
-	Ec_hThread[2] = CreateEvent(NULL, TRUE, TRUE, NULL);
 
 	MyUpdateThread = CreateEvent(NULL, TRUE, TRUE, NULL); //신호로 만들어줌  
 
@@ -246,10 +235,12 @@ void UpdatePlayer(short currentId) {
 	if (dropSpeed[currentId] >= 0.f)
 		IsCollisionFloor(currentId);
 
-
 	playerStatus[currentId].x += moveSpeed[currentId];
 	playerStatus[currentId].y += dropSpeed[currentId]; // 여기서 y이동
 	playerStatus[currentId].CollidBox = RECT_OBJECT(playerStatus[currentId].x, playerStatus[currentId].y, 24, 28); // 콜리젼박스 업데이트
+	IsCollisionFire(currentId);
+	IsCollisionThorn(currentId);
+	IsCollisionPattern(currentId);
 }
 
 void UpdateFire() {
@@ -307,26 +298,35 @@ void UpdateFire() {
 		W_FireStatus[i].x += W_FiredropSpeed[i]; // 상태 변화
 		H_FireStatus[i].y += H_FiredropSpeed[i]; // 상태 변화
 
+		update_packet.H_FireTemp[i].x = W_FireStatus[i].x;
+		update_packet.W_FireTemp[i].y = H_FireStatus[i].y;
+
 		//콜리젼 박스 업데이트 
-		//FireStatus[i].CollidBox = RECT_OBJECT(FireStatus[i].x, FireStatus[i].y, FireStatus[i].x_size, FireStatus[i].y_size);
-		//W_FireStatus[i].CollidBox = RECT_OBJECT(W_FireStatus[i].x, W_FireStatus[i].y, W_FireStatus[i].x_size, W_FireStatus[i].y_size);
+		H_FireStatus[i].CollidBox = RECT_OBJECT(H_FireStatus[i].x, H_FireStatus[i].y, H_FireStatus[i].x_size, H_FireStatus[i].y_size);
+		W_FireStatus[i].CollidBox = RECT_OBJECT(W_FireStatus[i].x, W_FireStatus[i].y, W_FireStatus[i].x_size, W_FireStatus[i].y_size);
 	}
 }
-void UpdatePattern(short currentId) {
+void UpdatePattern() {
+	//5개 모두 획득했다면 
+	for (int i = 0; i < PATTERNCNT; ++i) {
+		if (isPatternClear[i] == true)
+			check += 1;
+		if (check == 5)
+			update_packet.gamemodestate = 0; //gameClear 의미함 
+
+		update_packet.PatternTemp[i].x = PatternStatus[i].x;
+		update_packet.PatternTemp[i].y = PatternStatus[i].y;
+	}
+
+}
+void IsCollisionPattern(short currentId)
+{
 	for (int i = 0; i < PATTERNCNT; ++i) {
 		if (IntersectRect(&rt, &playerStatus[currentId].CollidBox, &PatternStatus[i].CollidBox))
 		{
 			PatternStatus[i].x = 1200 - 30 * i; //충돌하면 우측 상단으로 이동시키는 코드
 			PatternStatus[i].y = 0;
 			isPatternClear[i] = true;
-		}
-
-		//5개 모두 획득했다면 
-		for (int i = 0; i < PATTERNCNT; ++i) {
-			if (isPatternClear[i] == true)
-				check += 1;
-			if (check == 5)
-				update_packet.gamemodestate = 2; //gameClear 의미함 
 		}
 	}
 }
@@ -354,7 +354,7 @@ void IsCollisionThorn(short currentId) {
 		if (IntersectRect(&rt, &playerStatus[currentId].CollidBox, &ThornStatus[i].CollidBox))
 		{
 			update_packet.gamemodestate = 0;
-			update_packet.PlayerTemp[currentId].state_type = PLAYER::Player_State::DEAD;
+			PlayerReset(currentId);
 		}
 	}
 }
@@ -365,13 +365,13 @@ void IsCollisionFire(short currentId) {
 		if (IntersectRect(&rt, &playerStatus[currentId].CollidBox, &H_FireStatus[i].CollidBox))
 		{
 			update_packet.gamemodestate = 0;
-			update_packet.PlayerTemp[currentId].state_type = PLAYER::Player_State::DEAD;
+			PlayerReset(currentId);
 		}
 
 		if (IntersectRect(&rt, &playerStatus[currentId].CollidBox, &W_FireStatus[i].CollidBox))
 		{
 			update_packet.gamemodestate = 0;
-			update_packet.PlayerTemp[currentId].state_type = PLAYER::Player_State::DEAD;
+			PlayerReset(currentId);
 		}
 	}
 }
@@ -528,4 +528,47 @@ void LoginSendPacket(int Client_count)
 			}
 		}
 	}
+}
+
+void PlayerReset(short current_Id)
+{
+	cout << current_Id << "번 클라이언트 충돌" << endl;
+	playerStatus[current_Id].state_type = PLAYER::IDLE;
+	playerStatus[current_Id].x = 640;
+	playerStatus[current_Id].y = 0;
+	playerStatus[current_Id].CollidBox = RECT_OBJECT(playerStatus[current_Id].x, playerStatus[current_Id].y, 24, 28);
+	timelap -= 5;
+}
+
+int m_fFPS;
+int k = 0;
+
+void UpdateFPS()
+{
+	
+	static DWORD FrameCnt = 0;
+	static float TimeElapsed = 0;
+	static DWORD lastTime = timeGetTime();
+
+	DWORD currTime = timeGetTime();
+
+	float timeDelta = (currTime - lastTime) * 0.001f;
+
+	FrameCnt++;
+	TimeElapsed += timeDelta;
+
+	if (TimeElapsed >= 1.0f)
+	{
+		m_fFPS = (float)FrameCnt / TimeElapsed;
+		TimeElapsed = 0.0f;
+		FrameCnt = 0;
+		k = 0;
+		timelap -= 1;
+	}
+	if (k == 0)
+	{
+		cout << "FPS : " << m_fFPS << endl;
+		k++;
+	}
+	lastTime = currTime;
 }

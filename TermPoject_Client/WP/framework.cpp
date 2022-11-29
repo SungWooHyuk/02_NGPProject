@@ -28,7 +28,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 DWORD WINAPI Thread_client(LPVOID arg);
 HWND hWnd; // state에서 사용하려고 전역으로 뺌
 
-
 // 소켓 함수 오류 출력 후 종료
 void err_quit(const char* msg)
 {
@@ -59,6 +58,7 @@ void err_display(const char* msg)
 void LoginDataSetting(LOGIN_PACKET& login_info);
 void InitDataSetting(INIT_PACKET& init_info);
 void InitSettingObj();
+
 void UpdateTime(OBJECT_UPDATE_PACKET& update_info);
 void UpdatePlayer(OBJECT_UPDATE_PACKET& update_info);
 void UpdatePattern(OBJECT_UPDATE_PACKET& update_info);
@@ -117,10 +117,15 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == INVALID_SOCKET) err_quit("socket()");
 
+	//string a;
+	////cout << "서버 ip를 입력하시오 : " << endl;
+	//cin >> a;
+
 	// connect()
 	SOCKADDR_IN serveraddr;
 	ZeroMemory(&serveraddr, sizeof(serveraddr));
 	serveraddr.sin_family = AF_INET;
+	//serveraddr.sin_addr.s_addr = inet_addr((PCSTR)&a);
 	serveraddr.sin_addr.s_addr = inet_addr(SERVERIP);
 	serveraddr.sin_port = htons(SERVERPORT);
 	retval = connect(sock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
@@ -144,28 +149,31 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 	//gamemodestate = Init_info.gameStart; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어
 
 	while (1) {
-		if (keyLayout[VK_LEFT] == keyLayout[VK_RIGHT] ) keyinput_info.state_type = PLAYER::Player_State::IDLE; // 이동
-		else if (keyLayout[VK_LEFT]) keyinput_info.state_type = PLAYER::Player_State::LEFT;
-		else if (keyLayout[VK_RIGHT]) keyinput_info.state_type = PLAYER::Player_State::RIGHT;
-
-		if (keyLayout[VK_SPACE])
+		if (gamemodestate == 0)
 		{
-			keyinput_info.jump = true;
-		}
-	
-		send(sock, (char*)&keyinput_info, sizeof(KEYINPUT_PAKCET), 0);
-		
-		keyLayout[VK_SPACE] = 0;
-		keyinput_info.jump = false;
+			if (keyLayout[VK_LEFT] == keyLayout[VK_RIGHT]) keyinput_info.state_type = PLAYER::Player_State::IDLE; // 이동
+			else if (keyLayout[VK_LEFT]) keyinput_info.state_type = PLAYER::Player_State::LEFT;
+			else if (keyLayout[VK_RIGHT]) keyinput_info.state_type = PLAYER::Player_State::RIGHT;
 
-		retval = recv(sock, (char*)&update_info, sizeof(OBJECT_UPDATE_PACKET), 0);
-		
-		UpdateFire(update_info);
-		UpdatePlayer(update_info);
-		//UpdatePattern(update_info);
-		//UpdateTime(update_info);
-		visible = update_info.visible;
-		gamemodestate = update_info.gamemodestate;
+			if (keyLayout[VK_SPACE])
+			{
+				keyinput_info.jump = true;
+			}
+
+			send(sock, (char*)&keyinput_info, sizeof(KEYINPUT_PAKCET), 0);
+
+			keyLayout[VK_SPACE] = 0;
+			keyinput_info.jump = false;
+
+			retval = recv(sock, (char*)&update_info, sizeof(OBJECT_UPDATE_PACKET), 0);
+
+			UpdateFire(update_info);
+			UpdatePlayer(update_info);
+			UpdatePattern(update_info);
+			UpdateTime(update_info);
+			visible = update_info.visible;
+			gamemodestate = update_info.gamemodestate;
+		}
 	}
 
 
@@ -193,8 +201,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 		case 1:
 			//GetLocalTime(&st);
-			_stprintf_s(sTime, _T("남은 시간은 %d입니다."), timelap);
-			InvalidateRect(hWnd, NULL, false); // 화면 갈아주기
+			if (gamemodestate == 0)
+			{
+				_stprintf_s(sTime, _T("남은 시간은 %d입니다."), timelap);
+				InvalidateRect(hWnd, NULL, false); // 화면 갈아주기
+			}
+			else
+			{
+				InvalidateRect(hWnd, NULL, false); // 화면 갈아주기
+			}
 			return 0;
 			break;
 		}
@@ -249,10 +264,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		Rendering(memdc1);
 
-		SetBkMode(memdc1, TRANSPARENT);
-		SetTextColor(memdc1, RGB(255, 255, 255));
-		TextOut(memdc1, 540, 50, sTime, _tcslen(sTime));
-
+		if (gamemodestate == 0)
+		{
+			SetBkMode(memdc1, TRANSPARENT);
+			SetTextColor(memdc1, RGB(255, 255, 255));
+			TextOut(memdc1, 540, 50, sTime, _tcslen(sTime));
+		}
+		
 		BitBlt(hdc, 0, 0, 1280, 720, memdc1, 0, 0, SRCCOPY);
 
 		DeleteObject(SelectObject(memdc1, hOldBitmap)); // 딜리트
