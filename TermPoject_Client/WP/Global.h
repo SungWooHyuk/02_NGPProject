@@ -18,16 +18,11 @@ bool doorvisible = false; // 초기값은 문 안보이게, 문양 다 먹게되면 true로
 int CurrentPlayerid = 0; //해당client의 아이디값 
 
 short my_id; // 내 아이디
-bool GameStart = false; //바뀜
-bool doorcheck[3] = { false,false,false }; //바뀜
-bool isJumpCheck[3] = { false,false,false }; //바뀜
-bool firstbuttoncheck[3] = { false,false,false }; //바뀜
-bool secondbuttoncheck[3] = { false,false,false }; //바뀜
-short gamemodestate = 3; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어, 3일땐 로비 //바뀜
-int tick_3 = 0; //바뀜
-wchar_t temp_ipBuf[20]; //바뀜
-wchar_t temp_idBuf[20]; //바뀜
-string playerid; //바뀜
-string ip; //바뀜
-string chracter_name[3];
-LPCTSTR DC = L"Check";
+bool GameStart = false;
+bool doorcheck[3] = { false,false,false };
+bool isJumpCheck[3] = { false,false,false };
+bool firstbuttoncheck[3] = { false,false,false };
+bool secondbuttoncheck[3] = { false,false,false };
+short gamemodestate = 3; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어, 3일땐 로비
+int tick_3 = 0;
+

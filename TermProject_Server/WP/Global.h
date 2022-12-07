@@ -20,7 +20,7 @@ static float W_Firegravity[FIRECNT]{ 0.05f,0.07f, 0.09f, 0.11f, 0.13f }; // 불 �
 static float H_Firegravity[FIRECNT]{ 0.13f,0.11f, 0.09f, 0.07f, 0.05f }; // 불 중력값 다 다르게 주려고
 
 static int timelap = 150; // 시간측정을 위한 변수
-short gamemodestate = 0; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어
+short gamemodestate = 0; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어, 3일때는 Lobby
 bool visible = false; // 초기값은 문 안보이게, 문양 다 먹게되면 true로
 
 RECT rt;	//기준 사각형
@@ -35,8 +35,3 @@ int Client_count = 0;
 bool logincheck[3]{ false, false, false };
 bool Initcheck = false;
 
-bool firstbutton[3] = { false,false,false }; //바뀜
-bool secondbutton[3] = { false,false,false }; //바뀜
-bool doorcheck[3] = { false, false, false }; //바뀜
-
-string nickname[3]; //바뀜
