@@ -64,6 +64,7 @@ void UpdateTime(OBJECT_UPDATE_PACKET& update_info);
 void UpdatePlayer(OBJECT_UPDATE_PACKET& update_info);
 void UpdatePattern(OBJECT_UPDATE_PACKET& update_info);
 void UpdateFire(OBJECT_UPDATE_PACKET& update_info);
+void UpdateButton(OBJECT_UPDATE_PACKET& update_info); //바뀜
 
 void Rendering(HDC memdc1);
 
@@ -234,7 +235,13 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 
 			UpdateFire(update_info);
 			UpdatePlayer(update_info);
+			UpdateTime(update_info);
 
+			for (int i = 0; i < 3; ++i) {
+				doorcheck[i] = update_info.doorcheck[i];
+				isJumpCheck[i] = update_info.isJump[i];
+
+			}
 			doorvisible = update_info.doorvisible;
 			gamemodestate = update_info.gamemodestate;
 
@@ -536,92 +543,177 @@ void Rendering(HDC memdc1) {
 		else
 			CloseDoor.Draw(memdc1, doorstatus.x, doorstatus.y, 1, 1); // 처음에는 문 안보여주기  
 
-		for (int i = 0; i < MAXCLIENT; ++i) { //바뀜
-			if (playerStatus[i].visible)
+		for (int i = 0; i < MAXCLIENT; ++i) {
+			if (playerStatus[i].visible && GameStart)
 			{
 				switch (playerStatus[i].id)
 				{
 				case 0:
-					PlayerImg.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); // 플레이어 
+					if (isJumpCheck[i])
+						PlayerImg_j.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); // 플레이어 
+					else
+						PlayerImg.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); // 플레이어 
 					break;
 				case 1:
-					PlayerImg_2.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); // 플레이어 
+					if (isJumpCheck[i])
+						PlayerImg_j_2.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); // 플레이어  
+					else
+						PlayerImg_2.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); // 플레이어 
+
 					break;
 				case 2:
-					PlayerImg_3.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); // 플레이어 
+					if (isJumpCheck[i])
+						PlayerImg_j_3.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); // 플레이어  
+					else
+						PlayerImg_3.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); // 플레이어 
 					break;
 
 				}
 			}
 		}
 
-		//발판 그려주기
+		if (GameStart)
+		{
+			for (int i = 0; i < FLOORCNT; ++i)
+				FloorImg.Draw(memdc1, floorStatus[i].x, floorStatus[i].y, floorStatus[i].x_size, floorStatus[i].y_size);
+		}
 
-		for (int i = 0; i < FLOORCNT; ++i)
-			FloorImg.Draw(memdc1, floorStatus[i].x, floorStatus[i].y, floorStatus[i].x_size, floorStatus[i].y_size);
-
-
-
-		for (int i = 0; i < THORNCNT; ++i)
-			ThronImg.Draw(memdc1, ThornStatus[i].x, ThornStatus[i].y, ThornStatus[i].x_size, ThornStatus[i].y_size);
-
-		//불 그려주기
+		if (GameStart) {
+			for (int i = 0; i < THORNCNT; ++i)
+				ThronImg.Draw(memdc1, ThornStatus[i].x, ThornStatus[i].y, ThornStatus[i].x_size, ThornStatus[i].y_size);
+		}
 		for (int i = 0; i < FIRECNT; ++i)
 			Fire.Draw(memdc1, FireStatus[i].x, FireStatus[i].y, FireStatus[i].x_size, FireStatus[i].y_size);
 
 		for (int i = 0; i < FIRECNT; ++i)
 			Fire2.Draw(memdc1, W_FireStatus[i].x, W_FireStatus[i].y, W_FireStatus[i].x_size, W_FireStatus[i].y_size);
 
-
-		// 패턴 흑백으로 미리 그려주기
 		for (int i = 0; i < PATTERNCNT; ++i)
 		{
-
-			switch (i)
-			{
-			case 0:
-				GS_Pattern.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
-				break;
-			case 1:
-				GS_Pattern2.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
-				break;
-			case 2:
-				GS_Pattern3.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
-				break;
-			case 3:
-				GS_Pattern4.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
-				break;
-			case 4:
-				GS_Pattern5.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
-				break;
+			if (GameStart) {
+				switch (i)
+				{
+				case 0:
+					GS_Pattern.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
+					break;
+				case 1:
+					GS_Pattern2.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
+					break;
+				case 2:
+					GS_Pattern3.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
+					break;
+				case 3:
+					GS_Pattern4.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
+					break;
+				case 4:
+					GS_Pattern5.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
+					break;
+				}
 			}
-
 		}
-
-		// 패턴 게임상 그려주기 
 
 		for (int i = 0; i < PATTERNCNT; ++i)
 		{
-
-			switch (i)
+			if (PatternStatus[i].objectvisible)
 			{
-			case 0:
-				PatternImg.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
-				break;
-			case 1:
-				Pattern2.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
-				break;
-			case 2:
-				Pattern3.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
-				break;
-			case 3:
-				Pattern4.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
-				break;
-			case 4:
-				Pattern5.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
-				break;
+				switch (i)
+				{
+				case 0:
+					PatternImg.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
+					break;
+				case 1:
+					Pattern2.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
+					break;
+				case 2:
+					Pattern3.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
+					break;
+				case 3:
+					Pattern4.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
+					break;
+				case 4:
+					Pattern5.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
+					break;
+				}
+			}
+		}
+
+		for (int i = 0; i < BUTTONCNT; ++i)
+		{
+			if (ButtonStatus[i].objectvisible)
+			{
+				switch (i)
+				{
+				case 0:
+					if (firstbuttoncheck[0] || firstbuttoncheck[1] || firstbuttoncheck[2])
+						ButtonDown.Draw(memdc1, ButtonStatus[i].x, ButtonStatus[i].y + 10, ButtonStatus[i].x_size, ButtonStatus[i].y_size - 10);
+					else
+						ButtonUP.Draw(memdc1, ButtonStatus[i].x, ButtonStatus[i].y, ButtonStatus[i].x_size, ButtonStatus[i].y_size);
+					break;
+
+				case 1:
+					if (secondbuttoncheck[0] || secondbuttoncheck[1] || secondbuttoncheck[2])
+						ButtonDown.Draw(memdc1, ButtonStatus[i].x, ButtonStatus[i].y + 10, ButtonStatus[i].x_size, ButtonStatus[i].y_size - 10);
+					else
+						ButtonUP.Draw(memdc1, ButtonStatus[i].x, ButtonStatus[i].y, ButtonStatus[i].x_size, ButtonStatus[i].y_size);
+					break;
+
+				}
+			}
+		}
+	}
+
+
+	else if (gamemodestate == 1)
+	{
+		GameOver.Draw(memdc1, 0, 0, 1280, 720);
+	}
+	else if (gamemodestate == 2)
+	{
+		GameClear.Draw(memdc1, 0, 0, 1280, 720);
+	}
+	else if (gamemodestate == 3)
+	{
+		Lobby.Draw(memdc1, 0, 0, 1280, 720);
+
+		for (int i = 0; i < MAXCLIENT; ++i) {
+			if (playerStatus[i].visible && GameStart == false)
+			{
+				if (tick_3 < 50)
+				{
+					switch (playerStatus[i].id)
+					{
+					case 0:
+						PlayerImg.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						break;
+					case 1:
+						PlayerImg_2.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						break;
+					case 2:
+						PlayerImg_3.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						break;
+					}
+				}
+				else
+				{
+					switch (playerStatus[i].id)
+					{
+					case 0:
+						PlayerImg_j.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						break;
+					case 1:
+						PlayerImg_j_2.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						break;
+					case 2:
+						PlayerImg_j_3.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						break;
+					}
+
+					if (tick_3 > 100)
+						tick_3 = 0;
+				}
 			}
 
 		}
+		tick_3++;
 	}
 }
