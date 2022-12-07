@@ -15,14 +15,14 @@ bool keyLayout[256]{};
 unsigned int timelap{}; // 시간측정을 위한 변수
 bool gamestart = false;
 bool doorvisible = false; // 초기값은 문 안보이게, 문양 다 먹게되면 true로
-int CurrentPlayerid = 0; //해당client의 아이디값 
+int CurrentPlayerid =0; //해당client의 아이디값 
 
 short my_id; // 내 아이디
-bool GameStart = false;
-bool doorcheck[3] = { false,false,false };
-bool isJumpCheck[3] = { false,false,false };
-bool firstbuttoncheck[3] = { false,false,false };
+bool GameStart = false; 
+bool doorcheck[3] = { false,false,false }; 
+bool isJumpCheck[3] = { false,false,false }; 
+bool firstbuttoncheck[3] = { false,false,false }; 
 bool secondbuttoncheck[3] = { false,false,false };
 short gamemodestate = 3; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어, 3일땐 로비
-int tick_3 = 0;
+int tick_3 = 0; 
 
