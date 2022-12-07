@@ -25,18 +25,18 @@ INIT_PACKET  Init_info;
 SOCKET sock;
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Name";
-LPCTSTR lpszWindowName = L"Treasure Hunter";
+LPCTSTR lpszWindowName = L"Treasure Hunter"; 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 DWORD WINAPI Thread_client(LPVOID arg);
-HWND hWnd;
+HWND hWnd; 
 
 wchar_t temp_ipBuf[256];
 wchar_t temp_idBuf[256];
 string playerid;
 string ip;
 
-string chracter_name[3];
-LPCTSTR DC = L"Check";
+string chracter_name[3]; 
+LPCTSTR DC = L"Check"; 
 
 // 소켓 함수 오류 출력 후 종료
 void err_quit(const char* msg)
@@ -73,15 +73,15 @@ void UpdateTime(OBJECT_UPDATE_PACKET& update_info);
 void UpdatePlayer(OBJECT_UPDATE_PACKET& update_info);
 void UpdatePattern(OBJECT_UPDATE_PACKET& update_info);
 void UpdateFire(OBJECT_UPDATE_PACKET& update_info);
-void UpdateButton(OBJECT_UPDATE_PACKET& update_info);
+void UpdateButton(OBJECT_UPDATE_PACKET& update_info); 
 
 void Rendering(HDC memdc1);
 
-INT_PTR CALLBACK DlgProc(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK DlgProc(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM lParam); 
 
-HANDLE hWriteEvent;
-HWND hButtonDialog;
-HWND hEditDialog;
+HANDLE hWriteEvent; 
+HWND hButtonDialog; 
+HWND hEditDialog; 
 HWND hEdit_2_Dialog;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
@@ -112,7 +112,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 
 
 
-	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG11), NULL, DlgProc);
+	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG11), NULL, DlgProc); 
 
 	ShowWindow(hWnd, nCmdShow);
 
@@ -130,7 +130,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 	return Message.wParam;
 }
 
-INT_PTR CALLBACK DlgProc(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK DlgProc(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM lParam) 
 {
 
 	switch (iMessage)
@@ -147,7 +147,7 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		case IDC_BUTTON11:
 			GetDlgItemText(hDlg, IDC_EDIT11, temp_ipBuf, 256);
 			GetDlgItemText(hDlg, IDC_EDIT21, temp_idBuf, 256);
-			SetEvent(hWriteEvent);
+			SetEvent(hWriteEvent); 
 			EndDialog(hDlg, IDD_DIALOG11);
 			return TRUE;
 		}
@@ -159,13 +159,13 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	}
 
 	return FALSE;
-}
+} 
 
 
 
 DWORD WINAPI Thread_client(LPVOID arg) {
 
-	WaitForSingleObject(hWriteEvent, INFINITE);
+	WaitForSingleObject(hWriteEvent, INFINITE); 
 
 	int retval;
 
@@ -178,32 +178,32 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == INVALID_SOCKET) err_quit("socket()");
 
+	
+	int cnt = 0; 
 
-	int cnt = 0;
-
-	for (int i = 0; temp_ipBuf[i] != NULL; ++i)
+	for (int i = 0; temp_ipBuf[i] != NULL; ++i) 
 	{
 		ip += (char)temp_ipBuf[i];
-	}
+	} 
 
-	for (int i = 0; temp_idBuf[i] != NULL; ++i)
+	for (int i = 0; temp_idBuf[i] != NULL; ++i) 
 	{
-		playerid += (char)temp_idBuf[i];
-	}
-
-
+		playerid += (char)temp_idBuf[i]; 
+	} 
+	 
+	 
 	//if (ip == "127.0.0.1" || ip == "192.168.207.197")
 	//{
 	//}
 	//else
 	//	exit(-1);
 
-	strcpy(first_login.name, playerid.c_str());
+	strcpy(first_login.name, playerid.c_str()); 
 
 	SOCKADDR_IN serveraddr;
 	ZeroMemory(&serveraddr, sizeof(serveraddr));
 	serveraddr.sin_family = AF_INET;
-	serveraddr.sin_addr.s_addr = inet_addr((PCSTR)&ip);
+	serveraddr.sin_addr.s_addr = inet_addr((PCSTR)&ip); 
 	serveraddr.sin_port = htons(SERVERPORT);
 	retval = connect(sock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
 	if (retval == SOCKET_ERROR) err_quit("connect()");
@@ -247,20 +247,20 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 
 			UpdateFire(update_info);
 			UpdatePlayer(update_info);
-			UpdatePattern(update_info);
-			UpdateTime(update_info);
-			UpdateButton(update_info);
+			UpdatePattern(update_info); 
+			UpdateTime(update_info); 
+			UpdateButton(update_info); 
 
 			for (int i = 0; i < 3; ++i) {
 				doorcheck[i] = update_info.doorcheck[i];
-				isJumpCheck[i] = update_info.isJump[i];
-				firstbuttoncheck[i] = update_info.firstbuttoncheck[i];
-				secondbuttoncheck[i] = update_info.secondbuttoncheck[i];
-			}
+				isJumpCheck[i] = update_info.isJump[i]; 
+				firstbuttoncheck[i] = update_info.firstbuttoncheck[i]; 
+				secondbuttoncheck[i] = update_info.secondbuttoncheck[i]; 
+			} 
 
 			doorvisible = update_info.doorvisible;
 			gamemodestate = update_info.gamemodestate;
-
+			
 		}
 	}
 
@@ -269,7 +269,7 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 	return 0;
 }
 
-TCHAR* StringToTCHAR(string& s)
+TCHAR* StringToTCHAR(string& s) 
 {
 	string tstr;
 	const char* all = s.c_str();
@@ -287,27 +287,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static HBITMAP hBitmap1, hBitmap2;
 	static HBRUSH hBrush, oldBrush;
 
-	static TCHAR sTime[128] = _T("");
-	static TCHAR name[128] = _T("");
-	static TCHAR two_name[128] = _T("");
-	static TCHAR three_name[128] = _T("");
+	static TCHAR sTime[128] = _T(""); 
+	static TCHAR name[128] = _T(""); 
+	static TCHAR two_name[128] = _T(""); 
+	static TCHAR three_name[128] = _T(""); 
 
 	switch (uMsg) {
 	case WM_TIMER:
 		switch (wParam)
 		{
 		case 1:
-			if (gamemodestate == 0 || gamemodestate == 3)
-			{
-				if (GameStart)
+			if (gamemodestate == 0 || gamemodestate == 3 ) 
+			{ 
+				if (GameStart) 
 					_stprintf_s(sTime, _T("남은 시간은 %d 입니다."), timelap);
 
-				_stprintf_s(name, L"%s", StringToTCHAR(chracter_name[0]));
+				_stprintf_s(name, L"%s", StringToTCHAR(chracter_name[0])); 
 				_stprintf_s(two_name, L"%s", StringToTCHAR(chracter_name[1]));
-				_stprintf_s(three_name, L"%s", StringToTCHAR(chracter_name[2]));
+				_stprintf_s(three_name, L"%s", StringToTCHAR(chracter_name[2])); 
 
 
-				if (doorcheck[0] != true)
+				if (doorcheck[0] != true) 
 					_stprintf_s(name, L"%s", StringToTCHAR(chracter_name[0]));
 				else
 					_stprintf_s(name, L"%s", DC);
@@ -322,14 +322,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				else
 					_stprintf_s(three_name, L"%s", DC);
 
-				InvalidateRect(hWnd, NULL, false);
+				InvalidateRect(hWnd, NULL, false); 
 			}
 			else
 			{
-				InvalidateRect(hWnd, NULL, false);
+				InvalidateRect(hWnd, NULL, false); 
 				return 0;
 			}
-			break;
+			break; 
 		}
 		break;
 
@@ -339,7 +339,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		///_tfreopen(_T("CONIN$"), _T("r"), stdin);
 		//_tfreopen(_T("CONERR$"), _T("w"), stderr);
 
-		Image();
+		Image(); 
 
 		InitSettingObj();
 
@@ -381,19 +381,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		Rendering(memdc1);
 
-		if (gamemodestate == 0 || gamemodestate == 3)
-		{
+		if (gamemodestate == 0 || gamemodestate == 3) 
+		{ 
 			SetBkMode(memdc1, TRANSPARENT);
 			SetTextColor(memdc1, RGB(255, 255, 255));
 			TextOut(memdc1, 540, 50, sTime, _tcslen(sTime));
 
-			SetBkMode(memdc1, TRANSPARENT);
+			SetBkMode(memdc1, TRANSPARENT); 
 			SetTextColor(memdc1, RGB(255, 0, 0));
-			TextOut(memdc1, playerStatus[0].x - strlen(chracter_name[0].c_str()), playerStatus[0].y - 20, name, _tcslen(name));
+			TextOut(memdc1, playerStatus[0].x - strlen(chracter_name[0].c_str()), playerStatus[0].y - 20, name, _tcslen(name)); 
 
-			SetBkMode(memdc1, TRANSPARENT);
-			SetTextColor(memdc1, RGB(0, 255, 0));
-			TextOut(memdc1, playerStatus[1].x - strlen(chracter_name[1].c_str()), playerStatus[1].y - 20, two_name, _tcslen(two_name));
+			SetBkMode(memdc1, TRANSPARENT); 
+			SetTextColor(memdc1, RGB(0, 255, 0)); 
+			TextOut(memdc1, playerStatus[1].x - strlen(chracter_name[1].c_str()), playerStatus[1].y - 20, two_name, _tcslen(two_name)); 
 
 			SetBkMode(memdc1, TRANSPARENT);
 			SetTextColor(memdc1, RGB(0, 0, 255));
@@ -402,7 +402,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		BitBlt(hdc, 0, 0, 1280, 720, memdc1, 0, 0, SRCCOPY);
 
-		DeleteObject(SelectObject(memdc1, hOldBitmap));
+		DeleteObject(SelectObject(memdc1, hOldBitmap)); 
 		DeleteObject(hBitmap1);
 		DeleteDC(memdc1);
 		DeleteDC(hdc);
@@ -429,8 +429,8 @@ void LoginDataSetting(LOGIN_PACKET& login_info)
 	playerStatus[login_info.player.id].x = login_info.player.x;
 	playerStatus[login_info.player.id].y = login_info.player.y;
 	playerStatus[login_info.player.id].visible = login_info.player.visible;
-	chracter_name[login_info.player.id] = login_info.name;
-	strcpy(playerStatus[login_info.player.id].name, chracter_name[login_info.player.id].c_str());
+	chracter_name[login_info.player.id] = login_info.name; 
+	strcpy(playerStatus[login_info.player.id].name, chracter_name[login_info.player.id].c_str()); 
 }
 
 void InitDataSetting(INIT_PACKET& init_info)
@@ -445,11 +445,11 @@ void InitDataSetting(INIT_PACKET& init_info)
 		PatternStatus[i].x_size = init_info.pattern_temp[i].x_size;
 		PatternStatus[i].y_size = init_info.pattern_temp[i].y_size;
 		PatternStatus[i].id = init_info.pattern_temp[i].id;
-		PatternStatus[i].objectvisible = init_info.pattern_temp[i].objectvisible;
+		PatternStatus[i].objectvisible = init_info.pattern_temp[i].objectvisible; 
 	}
 	for (int i = 0; i < BUTTONCNT; ++i)
 	{
-		ButtonStatus[i].objectvisible = init_info.button[i].objectvisible;
+		ButtonStatus[i].objectvisible = init_info.button[i].objectvisible; 
 		ButtonStatus[i].x = init_info.button[i].x;
 		ButtonStatus[i].y = init_info.button[i].y;
 		ButtonStatus[i].x_size = init_info.button[i].x_size;
@@ -462,7 +462,7 @@ void InitDataSetting(INIT_PACKET& init_info)
 }
 
 void UpdateFire(OBJECT_UPDATE_PACKET& update_info) {
-
+	
 	for (int i = 0; i < FIRECNT; ++i) {
 		W_FireStatus[i].x = update_info.H_FireTemp[i].x;
 		FireStatus[i].y = update_info.W_FireTemp[i].y;
@@ -472,20 +472,20 @@ void UpdateFire(OBJECT_UPDATE_PACKET& update_info) {
 
 void UpdatePattern(OBJECT_UPDATE_PACKET& update_info) {
 	for (int i = 0; i < PATTERNCNT; ++i) {
-		if (update_info.PatternTemp[i].objectvisible)
+		if (update_info.PatternTemp[i].objectvisible) 
 		{
 			PatternStatus[i].x = update_info.PatternTemp[i].x;
 			PatternStatus[i].y = update_info.PatternTemp[i].y;
 			PatternStatus[i].objectvisible = update_info.PatternTemp[i].objectvisible;
 		}
-		else
+		else 
 		{
-			PatternStatus[i].objectvisible = update_info.PatternTemp[i].objectvisible;
+			PatternStatus[i].objectvisible = update_info.PatternTemp[i].objectvisible; 
 		}
 	}
 }
 
-void UpdateButton(OBJECT_UPDATE_PACKET& update_info)
+void UpdateButton(OBJECT_UPDATE_PACKET& update_info) 
 {
 	for (int i = 0; i < BUTTONCNT; ++i)
 	{
@@ -533,7 +533,7 @@ void InitSettingObj() {
 	FireStatus[0] = Object(0, 70, -50, 34, 51);
 	FireStatus[1] = Object(1, 380, -50, 34, 51);
 	FireStatus[2] = Object(2, 500, -50, 34, 51);
-	FireStatus[3] = Object(3, 710, -50, 34, 51);
+	FireStatus[3] = Object(3, 760, -50, 34, 51);
 	FireStatus[4] = Object(4, 935, -50, 34, 51);
 
 	W_FireStatus[0] = Object(0, -55, 47, 51, 34);
@@ -559,7 +559,7 @@ void InitSettingObj() {
 }
 
 void Rendering(HDC memdc1) {
-	if (gamemodestate == 0)
+	if (gamemodestate == 0) 
 	{
 		BackGround.Draw(memdc1, 0, 0, 1280, 720);
 
@@ -585,35 +585,35 @@ void Rendering(HDC memdc1) {
 				{
 				case 0:
 					if (isJumpCheck[i])
-						PlayerImg_j.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						PlayerImg_j.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); 
 					else
-						PlayerImg.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						PlayerImg.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); 
 					break;
 				case 1:
 					if (isJumpCheck[i])
-						PlayerImg_j_2.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						PlayerImg_j_2.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); 
 					else
-						PlayerImg_2.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						PlayerImg_2.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);  
 
 					break;
 				case 2:
 					if (isJumpCheck[i])
-						PlayerImg_j_3.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						PlayerImg_j_3.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); 
 					else
-						PlayerImg_3.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						PlayerImg_3.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); 
 					break;
 
 				}
 			}
-		}
+		} 
 
-		if (GameStart)
-		{
+		if (GameStart) 
+		{ 
 			for (int i = 0; i < FLOORCNT; ++i)
 				FloorImg.Draw(memdc1, floorStatus[i].x, floorStatus[i].y, floorStatus[i].x_size, floorStatus[i].y_size);
 		}
 
-		if (GameStart) {
+		if (GameStart) { 
 			for (int i = 0; i < THORNCNT; ++i)
 				ThronImg.Draw(memdc1, ThornStatus[i].x, ThornStatus[i].y, ThornStatus[i].x_size, ThornStatus[i].y_size);
 		}
@@ -625,7 +625,7 @@ void Rendering(HDC memdc1) {
 
 		for (int i = 0; i < PATTERNCNT; ++i)
 		{
-			if (GameStart) {
+			if (GameStart) { 
 				switch (i)
 				{
 				case 0:
@@ -644,7 +644,7 @@ void Rendering(HDC memdc1) {
 					GS_Pattern5.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
 					break;
 				}
-			}
+			} 
 		}
 
 		for (int i = 0; i < PATTERNCNT; ++i)
@@ -693,7 +693,7 @@ void Rendering(HDC memdc1) {
 					break;
 
 				}
-			}
+			} 
 		}
 	}
 
@@ -702,11 +702,11 @@ void Rendering(HDC memdc1) {
 	{
 		GameOver.Draw(memdc1, 0, 0, 1280, 720);
 	}
-	else if (gamemodestate == 2)
+	else if (gamemodestate == 2) 
 	{
 		GameClear.Draw(memdc1, 0, 0, 1280, 720);
 	}
-	else if (gamemodestate == 3)
+	else if (gamemodestate == 3) 
 	{
 		Lobby.Draw(memdc1, 0, 0, 1280, 720);
 
@@ -750,5 +750,5 @@ void Rendering(HDC memdc1) {
 
 		}
 		tick_3++;
-	}
+	 } 
 }
