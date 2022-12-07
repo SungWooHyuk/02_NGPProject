@@ -2,6 +2,11 @@
 #include <atlimage.h>
 
 CImage PlayerImg;
+CImage PlayerImg_2;
+CImage PlayerImg_3;
+CImage PlayerImg_j;
+CImage PlayerImg_j_2;
+CImage PlayerImg_j_3;
 CImage BackGround;
 CImage FloorImg;   
 CImage ThronImg;
@@ -23,8 +28,10 @@ CImage GS_Pattern5;
 //¹®
 CImage CloseDoor;
 
-//gameover
+//gamemode
 CImage GameOver;
+CImage GameClear;
+CImage Lobby;
 
 //¹öÆ° 
 CImage ButtonUP;
@@ -34,6 +41,11 @@ void Image()
 {
 	BackGround.Load(L"Image/background.png");
 	PlayerImg.Load(L"Image/Player.png");
+	PlayerImg_2.Load(L"Image/Player2.png");
+	PlayerImg_3.Load(L"Image/Player3.png");
+	PlayerImg_j.Load(L"Image/Player1_j.png");
+	PlayerImg_j_2.Load(L"Image/Player2_j.png");
+	PlayerImg_j_3.Load(L"Image/Player3_j.png");
 	FloorImg.Load(L"Image/floor.png"); 
 	ThronImg.Load(L"Image/thorn.png"); 
 	Fire.Load(L"Image/fire1.png");
@@ -53,7 +65,8 @@ void Image()
 
 	CloseDoor.Load(L"Image/closeDoor.png");
 	GameOver.Load(L"Image/GameOver.png");
-
+	GameClear.Load(L"Image/GameClear.png");
+	Lobby.Load(L"Image/Lobby.png");
 	ButtonUP.Load(L"Image/buttonUp.png");
 	ButtonDown.Load(L"Image/buttonDown.png");
 }

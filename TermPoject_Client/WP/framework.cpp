@@ -3,10 +3,13 @@
 #pragma comment(lib, "ws2_32") 
 #include <winsock2.h> 
 #include <WS2tcpip.h>
-#include <iostream>
 #include <Windows.h> 
+#include <iostream>
 #include <tchar.h>
 #include <stdio.h>
+#include <string> 
+#include <stdlib.h> 
+
 #include "framework.h"
 
 #define SERVERIP   "127.0.0.1"
@@ -15,18 +18,25 @@
 
 using namespace std;
 
-short my_id; // 내 아이디
-
+LOGIN_PACKET first_login;
 LOGIN_PACKET login_info;
 INIT_PACKET  Init_info;
 
 SOCKET sock;
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Name";
-LPCTSTR lpszWindowName = L"WP Game";
+LPCTSTR lpszWindowName = L"Treasure Hunter"; 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 DWORD WINAPI Thread_client(LPVOID arg);
-HWND hWnd; // state에서 사용하려고 전역으로 뺌
+HWND hWnd; 
+
+wchar_t temp_ipBuf[256];
+wchar_t temp_idBuf[256];
+string playerid;
+string ip;
+
+string chracter_name[3]; 
+LPCTSTR DC = L"Check"; 
 
 // 소켓 함수 오류 출력 후 종료
 void err_quit(const char* msg)
@@ -55,15 +65,24 @@ void err_display(const char* msg)
 	LocalFree(lpMsgBuf);
 }
 
+
+void InitSettingObj();
 void LoginDataSetting(LOGIN_PACKET& login_info);
 void InitDataSetting(INIT_PACKET& init_info);
-void InitSettingObj();
-
 void UpdateTime(OBJECT_UPDATE_PACKET& update_info);
 void UpdatePlayer(OBJECT_UPDATE_PACKET& update_info);
 void UpdatePattern(OBJECT_UPDATE_PACKET& update_info);
 void UpdateFire(OBJECT_UPDATE_PACKET& update_info);
+void UpdateButton(OBJECT_UPDATE_PACKET& update_info); 
+
 void Rendering(HDC memdc1);
+
+INT_PTR CALLBACK DlgProc(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM lParam); 
+
+HANDLE hWriteEvent; 
+HWND hButtonDialog; 
+HWND hEditDialog; 
+HWND hEdit_2_Dialog;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
@@ -87,14 +106,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 	hWnd = CreateWindow
 	(lpszClass, lpszWindowName,
 		WS_OVERLAPPEDWINDOW,
-		0, 0, 1280, 720, // 1280 , 720 화면사이즈
+		0, 0, 1280, 720,
 		NULL, (HMENU)NULL,
 		hInstance, NULL);
+
+
+
+	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG11), NULL, DlgProc); 
+
 	ShowWindow(hWnd, nCmdShow);
 
 	CreateThread(NULL, 0, Thread_client, NULL, 0, NULL);
 
 	UpdateWindow(hWnd);
+
+	hWriteEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 
 	while (GetMessage(&Message, 0, 0, 0)) {
 		TranslateMessage(&Message);
@@ -104,7 +130,42 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 	return Message.wParam;
 }
 
+INT_PTR CALLBACK DlgProc(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM lParam) 
+{
+
+	switch (iMessage)
+	{
+	case WM_INITDIALOG:
+		hEditDialog = GetDlgItem(hDlg, IDC_EDIT11);
+		hEdit_2_Dialog = GetDlgItem(hDlg, IDC_EDIT21);
+		hButtonDialog = GetDlgItem(hDlg, IDC_BUTTON11);
+		return TRUE;
+
+	case WM_COMMAND:
+		switch (LOWORD(wParam))
+		{
+		case IDC_BUTTON11:
+			GetDlgItemText(hDlg, IDC_EDIT11, temp_ipBuf, 256);
+			GetDlgItemText(hDlg, IDC_EDIT21, temp_idBuf, 256);
+			SetEvent(hWriteEvent); 
+			EndDialog(hDlg, IDD_DIALOG11);
+			return TRUE;
+		}
+		return FALSE;
+	case WM_CLOSE:
+
+		EndDialog(hDlg, IDD_DIALOG11);
+		return TRUE;
+	}
+
+	return FALSE;
+} 
+
+
+
 DWORD WINAPI Thread_client(LPVOID arg) {
+
+	WaitForSingleObject(hWriteEvent, INFINITE); 
 
 	int retval;
 
@@ -117,19 +178,38 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == INVALID_SOCKET) err_quit("socket()");
 
-	//string a;
-	////cout << "서버 ip를 입력하시오 : " << endl;
-	//cin >> a;
+	
+	int cnt = 0; 
 
-	// connect()
+	for (int i = 0; temp_ipBuf[i] != NULL; ++i) 
+	{
+		ip += (char)temp_ipBuf[i];
+	} 
+
+	for (int i = 0; temp_idBuf[i] != NULL; ++i) 
+	{
+		playerid += (char)temp_idBuf[i]; 
+	} 
+	 
+	 
+	//if (ip == "127.0.0.1" || ip == "192.168.207.197")
+	//{
+	//}
+	//else
+	//	exit(-1);
+
+	strcpy(first_login.name, playerid.c_str()); 
+
 	SOCKADDR_IN serveraddr;
 	ZeroMemory(&serveraddr, sizeof(serveraddr));
 	serveraddr.sin_family = AF_INET;
-	//serveraddr.sin_addr.s_addr = inet_addr((PCSTR)&a);
-	serveraddr.sin_addr.s_addr = inet_addr(SERVERIP);
+	serveraddr.sin_addr.s_addr = inet_addr((PCSTR)&ip); 
 	serveraddr.sin_port = htons(SERVERPORT);
 	retval = connect(sock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
 	if (retval == SOCKET_ERROR) err_quit("connect()");
+
+
+	send(sock, (char*)&first_login, sizeof(LOGIN_PACKET), 0);
 
 	while (1) {
 		retval = recv(sock, (char*)&login_info, sizeof(LOGIN_PACKET), MSG_WAITALL);
@@ -141,15 +221,13 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 			break;
 		}
 	}
-	
+
 	retval = recv(sock, (char*)&Init_info, sizeof(INIT_PACKET), 0);
 	InitDataSetting(Init_info);
-
-	//gamemodestate를 처음에 -1로 뒀다가 여기서 0으로 바뀌면 시작하도록 하기 
-	//gamemodestate = Init_info.gameStart; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어
+	GameStart = true;
 
 	while (1) {
-		if (gamemodestate == 0)
+		if (GameStart)
 		{
 			if (keyLayout[VK_LEFT] == keyLayout[VK_RIGHT]) keyinput_info.state_type = PLAYER::Player_State::IDLE; // 이동
 			else if (keyLayout[VK_LEFT]) keyinput_info.state_type = PLAYER::Player_State::LEFT;
@@ -169,59 +247,99 @@ DWORD WINAPI Thread_client(LPVOID arg) {
 
 			UpdateFire(update_info);
 			UpdatePlayer(update_info);
-			UpdatePattern(update_info);
-			UpdateTime(update_info);
-			visible = update_info.visible;
+			UpdatePattern(update_info); 
+			UpdateTime(update_info); 
+			UpdateButton(update_info); 
+
+			for (int i = 0; i < 3; ++i) {
+				doorcheck[i] = update_info.doorcheck[i];
+				isJumpCheck[i] = update_info.isJump[i]; 
+				firstbuttoncheck[i] = update_info.firstbuttoncheck[i]; 
+				secondbuttoncheck[i] = update_info.secondbuttoncheck[i]; 
+			} 
+
+			doorvisible = update_info.doorvisible;
 			gamemodestate = update_info.gamemodestate;
+			
 		}
 	}
 
-
 	closesocket(sock);
-
-	// 윈속 종료
 	WSACleanup();
 	return 0;
 }
 
+TCHAR* StringToTCHAR(string& s) 
+{
+	string tstr;
+	const char* all = s.c_str();
+	int len = 1 + strlen(all);
+	wchar_t* t = new wchar_t[len];
+	if (NULL == t) throw std::bad_alloc();
+	mbstowcs(t, all, len);
+	return (TCHAR*)t;
+}
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+
 	PAINTSTRUCT ps;
 	static HDC hdc, memdc1, memdc2;
 	static HBITMAP hBitmap1, hBitmap2;
 	static HBRUSH hBrush, oldBrush;
 
-	SYSTEMTIME st;
-	static TCHAR sTime[128] = _T("");
-	static RECT rrtt = { 100,100,400,120 };
+	static TCHAR sTime[128] = _T(""); 
+	static TCHAR name[128] = _T(""); 
+	static TCHAR two_name[128] = _T(""); 
+	static TCHAR three_name[128] = _T(""); 
 
 	switch (uMsg) {
 	case WM_TIMER:
 		switch (wParam)
 		{
 		case 1:
-			//GetLocalTime(&st);
-			if (gamemodestate == 0)
-			{
-				_stprintf_s(sTime, _T("남은 시간은 %d입니다."), timelap);
-				InvalidateRect(hWnd, NULL, false); // 화면 갈아주기
+			if (gamemodestate == 0 || gamemodestate == 3 ) 
+			{ 
+				if (GameStart) 
+					_stprintf_s(sTime, _T("남은 시간은 %d 입니다."), timelap);
+
+				_stprintf_s(name, L"%s", StringToTCHAR(chracter_name[0])); 
+				_stprintf_s(two_name, L"%s", StringToTCHAR(chracter_name[1]));
+				_stprintf_s(three_name, L"%s", StringToTCHAR(chracter_name[2])); 
+
+
+				if (doorcheck[0] != true) 
+					_stprintf_s(name, L"%s", StringToTCHAR(chracter_name[0]));
+				else
+					_stprintf_s(name, L"%s", DC);
+
+				if (doorcheck[1] != true)
+					_stprintf_s(two_name, L"%s", StringToTCHAR(chracter_name[1]));
+				else
+					_stprintf_s(two_name, L"%s", DC);
+
+				if (doorcheck[2] != true)
+					_stprintf_s(three_name, L"%s", StringToTCHAR(chracter_name[2]));
+				else
+					_stprintf_s(three_name, L"%s", DC);
+
+				InvalidateRect(hWnd, NULL, false); 
 			}
 			else
 			{
-				InvalidateRect(hWnd, NULL, false); // 화면 갈아주기
+				InvalidateRect(hWnd, NULL, false); 
+				return 0;
 			}
-			return 0;
-			break;
+			break; 
 		}
 		break;
 
 	case WM_CREATE: // 처음 초기화 해주는곳
-		AllocConsole();
-		_tfreopen(_T("CONOUT$"), _T("w"), stdout);
-		_tfreopen(_T("CONIN$"), _T("r"), stdin);
-		_tfreopen(_T("CONERR$"), _T("w"), stderr);
+		//AllocConsole();
+		///_tfreopen(_T("CONOUT$"), _T("w"), stdout);
+		///_tfreopen(_T("CONIN$"), _T("r"), stdin);
+		//_tfreopen(_T("CONERR$"), _T("w"), stderr);
 
-		Image(); // 이미지함수 불러서 초기화
+		Image(); 
 
 		InitSettingObj();
 
@@ -235,7 +353,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		else if (wParam == VK_RIGHT) {
 			keyLayout[VK_RIGHT] = 1; // 우
 		}
-		else if (wParam == VK_SPACE) { 
+		else if (wParam == VK_SPACE) {
 			keyLayout[VK_SPACE] = 1;
 		}
 
@@ -244,7 +362,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_KEYUP: // 키 떼면 불러지는곳
 		if (wParam == VK_LEFT) {
-			//cout << "여기가 불리나여? " << endl;
 			keyLayout[VK_LEFT] = 0;
 		}
 		else if (wParam == VK_RIGHT) {
@@ -264,16 +381,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		Rendering(memdc1);
 
-		if (gamemodestate == 0)
-		{
+		if (gamemodestate == 0 || gamemodestate == 3) 
+		{ 
 			SetBkMode(memdc1, TRANSPARENT);
 			SetTextColor(memdc1, RGB(255, 255, 255));
 			TextOut(memdc1, 540, 50, sTime, _tcslen(sTime));
+
+			SetBkMode(memdc1, TRANSPARENT); 
+			SetTextColor(memdc1, RGB(255, 0, 0));
+			TextOut(memdc1, playerStatus[0].x - strlen(chracter_name[0].c_str()), playerStatus[0].y - 20, name, _tcslen(name)); 
+
+			SetBkMode(memdc1, TRANSPARENT); 
+			SetTextColor(memdc1, RGB(0, 255, 0)); 
+			TextOut(memdc1, playerStatus[1].x - strlen(chracter_name[1].c_str()), playerStatus[1].y - 20, two_name, _tcslen(two_name)); 
+
+			SetBkMode(memdc1, TRANSPARENT);
+			SetTextColor(memdc1, RGB(0, 0, 255));
+			TextOut(memdc1, playerStatus[2].x - strlen(chracter_name[2].c_str()), playerStatus[2].y - 20, three_name, _tcslen(three_name));
 		}
-		
+
 		BitBlt(hdc, 0, 0, 1280, 720, memdc1, 0, 0, SRCCOPY);
 
-		DeleteObject(SelectObject(memdc1, hOldBitmap)); // 딜리트
+		DeleteObject(SelectObject(memdc1, hOldBitmap)); 
 		DeleteObject(hBitmap1);
 		DeleteDC(memdc1);
 		DeleteDC(hdc);
@@ -300,7 +429,8 @@ void LoginDataSetting(LOGIN_PACKET& login_info)
 	playerStatus[login_info.player.id].x = login_info.player.x;
 	playerStatus[login_info.player.id].y = login_info.player.y;
 	playerStatus[login_info.player.id].visible = login_info.player.visible;
-
+	chracter_name[login_info.player.id] = login_info.name; 
+	strcpy(playerStatus[login_info.player.id].name, chracter_name[login_info.player.id].c_str()); 
 }
 
 void InitDataSetting(INIT_PACKET& init_info)
@@ -315,9 +445,11 @@ void InitDataSetting(INIT_PACKET& init_info)
 		PatternStatus[i].x_size = init_info.pattern_temp[i].x_size;
 		PatternStatus[i].y_size = init_info.pattern_temp[i].y_size;
 		PatternStatus[i].id = init_info.pattern_temp[i].id;
+		PatternStatus[i].objectvisible = init_info.pattern_temp[i].objectvisible; 
 	}
 	for (int i = 0; i < BUTTONCNT; ++i)
 	{
+		ButtonStatus[i].objectvisible = init_info.button[i].objectvisible; 
 		ButtonStatus[i].x = init_info.button[i].x;
 		ButtonStatus[i].y = init_info.button[i].y;
 		ButtonStatus[i].x_size = init_info.button[i].x_size;
@@ -330,7 +462,7 @@ void InitDataSetting(INIT_PACKET& init_info)
 }
 
 void UpdateFire(OBJECT_UPDATE_PACKET& update_info) {
-	//불 위치 업데이트
+	
 	for (int i = 0; i < FIRECNT; ++i) {
 		W_FireStatus[i].x = update_info.H_FireTemp[i].x;
 		FireStatus[i].y = update_info.W_FireTemp[i].y;
@@ -340,11 +472,26 @@ void UpdateFire(OBJECT_UPDATE_PACKET& update_info) {
 
 void UpdatePattern(OBJECT_UPDATE_PACKET& update_info) {
 	for (int i = 0; i < PATTERNCNT; ++i) {
-		PatternStatus[i].x = update_info.PatternTemp[i].x;
-		PatternStatus[i].y = update_info.PatternTemp[i].y;
+		if (update_info.PatternTemp[i].objectvisible) 
+		{
+			PatternStatus[i].x = update_info.PatternTemp[i].x;
+			PatternStatus[i].y = update_info.PatternTemp[i].y;
+			PatternStatus[i].objectvisible = update_info.PatternTemp[i].objectvisible;
+		}
+		else 
+		{
+			PatternStatus[i].objectvisible = update_info.PatternTemp[i].objectvisible; 
+		}
 	}
 }
 
+void UpdateButton(OBJECT_UPDATE_PACKET& update_info) 
+{
+	for (int i = 0; i < BUTTONCNT; ++i)
+	{
+		ButtonStatus[i].objectvisible = update_info.ButtonTemp[i].objectvisible;
+	}
+}
 void UpdatePlayer(OBJECT_UPDATE_PACKET& update_info) {
 	for (int i = 0; i < MAXCLIENT; ++i) {
 		playerStatus[i].x = update_info.PlayerTemp[i].x;
@@ -362,7 +509,6 @@ void InitSettingObj() {
 	playerStatus[1] = Player(0, 0, 0, 24, 28, PLAYER::IDLE, false);
 	playerStatus[2] = Player(0, 0, 0, 24, 28, PLAYER::IDLE, false);
 
-	// 바닥 위치 셋팅
 	floorStatus[0] = Object(0, 120, 170, 158, 30);
 	floorStatus[1] = Object(1, 100, 550, 158, 30);
 	floorStatus[2] = Object(2, 370, 280, 158, 30);
@@ -374,7 +520,6 @@ void InitSettingObj() {
 	floorStatus[8] = Object(8, 1030, 140, 158, 30);
 	floorStatus[9] = Object(9, 1050, 600, 158, 30);
 
-	// 첫 가시 위치 바뀔일 없음 
 	ThornStatus[0] = Object(0, 0, 630, 145, 55);
 	ThornStatus[1] = Object(1, 145, 630, 145, 55);
 	ThornStatus[2] = Object(2, 290, 630, 145, 55);
@@ -385,46 +530,40 @@ void InitSettingObj() {
 	ThornStatus[7] = Object(7, 1015, 630, 145, 55);
 	ThornStatus[8] = Object(8, 1160, 630, 145, 55);
 
-	// 세로 불 초기값
 	FireStatus[0] = Object(0, 70, -50, 34, 51);
 	FireStatus[1] = Object(1, 380, -50, 34, 51);
 	FireStatus[2] = Object(2, 500, -50, 34, 51);
-	FireStatus[3] = Object(3, 710, -50, 34, 51);
+	FireStatus[3] = Object(3, 760, -50, 34, 51);
 	FireStatus[4] = Object(4, 935, -50, 34, 51);
 
-	// 가로 불 초기값
 	W_FireStatus[0] = Object(0, -55, 47, 51, 34);
 	W_FireStatus[1] = Object(1, -55, 218, 51, 34);
 	W_FireStatus[2] = Object(2, -55, 317, 51, 34);
 	W_FireStatus[3] = Object(3, -55, 482, 51, 34);
 	W_FireStatus[4] = Object(4, -55, 573, 51, 34);
 
-	// 패턴의 초기 위치 셋팅
 	PatternStatus[0] = Object(0, -50, -50, 50, 50);
 	PatternStatus[1] = Object(0, -50, -50, 50, 50);
 	PatternStatus[2] = Object(0, -50, -50, 50, 50);
 	PatternStatus[3] = Object(0, -50, -50, 50, 50);
 	PatternStatus[4] = Object(0, -50, -50, 50, 50);
 
-	// 흑백 패턴 초기값 셋팅 
 	gs_PatternStatus[0] = Object(0, 1200, 0, 50, 50);
 	gs_PatternStatus[1] = Object(1, 1170, 0, 50, 50);
 	gs_PatternStatus[2] = Object(2, 1140, 0, 50, 50);
 	gs_PatternStatus[3] = Object(3, 1110, 0, 50, 50);
 	gs_PatternStatus[4] = Object(4, 1080, 0, 50, 50);
 
-	// 문 초기값 셋팅 
 	doorstatus = Object(0, 723, 380, 1, 1);
 
 }
 
 void Rendering(HDC memdc1) {
-	if (gamemodestate == 0) // 바꾸기
+	if (gamemodestate == 0) 
 	{
-		BackGround.Draw(memdc1, 0, 0, 1280, 720); 
+		BackGround.Draw(memdc1, 0, 0, 1280, 720);
 
-		//CloseDoor.Draw(memdc1, 680, 305, 73, 85); // 문 원래 크기 
-		if (visible) {
+		if (doorvisible) {
 			if (doorstatus.x_size >= 73) doorstatus.x_size = 73;
 			else doorstatus.x_size += 1;
 			if (doorstatus.y_size >= 85) doorstatus.y_size = 85;
@@ -439,88 +578,177 @@ void Rendering(HDC memdc1) {
 		else
 			CloseDoor.Draw(memdc1, doorstatus.x, doorstatus.y, 1, 1); // 처음에는 문 안보여주기  
 
-		//player그려주기
 		for (int i = 0; i < MAXCLIENT; ++i) {
-			if (playerStatus[i].visible)
-				PlayerImg.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); // 플레이어 
+			if (playerStatus[i].visible && GameStart)
+			{
+				switch (playerStatus[i].id)
+				{
+				case 0:
+					if (isJumpCheck[i])
+						PlayerImg_j.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); 
+					else
+						PlayerImg.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); 
+					break;
+				case 1:
+					if (isJumpCheck[i])
+						PlayerImg_j_2.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); 
+					else
+						PlayerImg_2.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);  
+
+					break;
+				case 2:
+					if (isJumpCheck[i])
+						PlayerImg_j_3.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); 
+					else
+						PlayerImg_3.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size); 
+					break;
+
+				}
+			}
+		} 
+
+		if (GameStart) 
+		{ 
+			for (int i = 0; i < FLOORCNT; ++i)
+				FloorImg.Draw(memdc1, floorStatus[i].x, floorStatus[i].y, floorStatus[i].x_size, floorStatus[i].y_size);
 		}
 
-		//발판 그려주기
-		for (int i = 0; i < FLOORCNT; ++i)
-			FloorImg.Draw(memdc1, floorStatus[i].x, floorStatus[i].y, floorStatus[i].x_size, floorStatus[i].y_size);
-
-		//가시 그려주기
-		for (int i = 0; i < THORNCNT; ++i)
-			ThronImg.Draw(memdc1, ThornStatus[i].x, ThornStatus[i].y, ThornStatus[i].x_size, ThornStatus[i].y_size);
-
-		//불 그려주기
+		if (GameStart) { 
+			for (int i = 0; i < THORNCNT; ++i)
+				ThronImg.Draw(memdc1, ThornStatus[i].x, ThornStatus[i].y, ThornStatus[i].x_size, ThornStatus[i].y_size);
+		}
 		for (int i = 0; i < FIRECNT; ++i)
 			Fire.Draw(memdc1, FireStatus[i].x, FireStatus[i].y, FireStatus[i].x_size, FireStatus[i].y_size);
 
 		for (int i = 0; i < FIRECNT; ++i)
 			Fire2.Draw(memdc1, W_FireStatus[i].x, W_FireStatus[i].y, W_FireStatus[i].x_size, W_FireStatus[i].y_size);
 
-
-		// 패턴 흑백으로 미리 그려주기
 		for (int i = 0; i < PATTERNCNT; ++i)
 		{
-			//흑백 패턴 그려주기 
-			switch (i)
-			{
-			case 0:
-				GS_Pattern.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
-				break;
-			case 1:
-				GS_Pattern2.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
-				break;
-			case 2:
-				GS_Pattern3.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
-				break;
-			case 3:
-				GS_Pattern4.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
-				break;
-			case 4:
-				GS_Pattern5.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
-				break;
-			}
+			if (GameStart) { 
+				switch (i)
+				{
+				case 0:
+					GS_Pattern.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
+					break;
+				case 1:
+					GS_Pattern2.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
+					break;
+				case 2:
+					GS_Pattern3.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
+					break;
+				case 3:
+					GS_Pattern4.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
+					break;
+				case 4:
+					GS_Pattern5.Draw(memdc1, gs_PatternStatus[i].x, gs_PatternStatus[i].y, 50, 50);
+					break;
+				}
+			} 
 		}
-
-		// 패턴 게임상 그려주기 
 
 		for (int i = 0; i < PATTERNCNT; ++i)
 		{
-			switch (i)
+			if (PatternStatus[i].objectvisible)
 			{
-			case 0:
-				PatternImg.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
-				break;
-			case 1:
-				Pattern2.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
-				break;
-			case 2:
-				Pattern3.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
-				break;
-			case 3:
-				Pattern4.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
-				break;
-			case 4:
-				Pattern5.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
-				break;
+				switch (i)
+				{
+				case 0:
+					PatternImg.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
+					break;
+				case 1:
+					Pattern2.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
+					break;
+				case 2:
+					Pattern3.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
+					break;
+				case 3:
+					Pattern4.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
+					break;
+				case 4:
+					Pattern5.Draw(memdc1, PatternStatus[i].x, PatternStatus[i].y, PatternStatus[i].x_size, PatternStatus[i].y_size);
+					break;
+				}
 			}
 		}
 
-		//버튼 한개로 가정하고 수정함 
-		if (isButtonDown)
-			ButtonUP.Draw(memdc1, ButtonStatus[0].x, ButtonStatus[0].y, ButtonStatus[0].x_size, ButtonStatus[0].y_size);
-		else
-			ButtonDown.Draw(memdc1, ButtonStatus[0].x, ButtonStatus[0].y, ButtonStatus[0].x_size, ButtonStatus[0].y_size);
+		for (int i = 0; i < BUTTONCNT; ++i)
+		{
+			if (ButtonStatus[i].objectvisible)
+			{
+				switch (i)
+				{
+				case 0:
+					if (firstbuttoncheck[0] || firstbuttoncheck[1] || firstbuttoncheck[2])
+						ButtonDown.Draw(memdc1, ButtonStatus[i].x, ButtonStatus[i].y + 10, ButtonStatus[i].x_size, ButtonStatus[i].y_size - 10);
+					else
+						ButtonUP.Draw(memdc1, ButtonStatus[i].x, ButtonStatus[i].y, ButtonStatus[i].x_size, ButtonStatus[i].y_size);
+					break;
+
+				case 1:
+					if (secondbuttoncheck[0] || secondbuttoncheck[1] || secondbuttoncheck[2])
+						ButtonDown.Draw(memdc1, ButtonStatus[i].x, ButtonStatus[i].y + 10, ButtonStatus[i].x_size, ButtonStatus[i].y_size - 10);
+					else
+						ButtonUP.Draw(memdc1, ButtonStatus[i].x, ButtonStatus[i].y, ButtonStatus[i].x_size, ButtonStatus[i].y_size);
+					break;
+
+				}
+			} 
+		}
 	}
-	else if(gamemodestate==1) // 실패
+
+
+	else if (gamemodestate == 1)
 	{
 		GameOver.Draw(memdc1, 0, 0, 1280, 720);
 	}
-	else if (gamemodestate == 2) // 클리어
+	else if (gamemodestate == 2) 
 	{
-
+		GameClear.Draw(memdc1, 0, 0, 1280, 720);
 	}
+	else if (gamemodestate == 3) 
+	{
+		Lobby.Draw(memdc1, 0, 0, 1280, 720);
+
+		for (int i = 0; i < MAXCLIENT; ++i) {
+			if (playerStatus[i].visible && GameStart == false)
+			{
+				if (tick_3 < 50)
+				{
+					switch (playerStatus[i].id)
+					{
+					case 0:
+						PlayerImg.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						break;
+					case 1:
+						PlayerImg_2.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						break;
+					case 2:
+						PlayerImg_3.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						break;
+					}
+				}
+				else
+				{
+					switch (playerStatus[i].id)
+					{
+					case 0:
+						PlayerImg_j.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						break;
+					case 1:
+						PlayerImg_j_2.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						break;
+					case 2:
+						PlayerImg_j_3.Draw(memdc1, playerStatus[i].x, playerStatus[i].y, playerStatus[i].x_size, playerStatus[i].y_size);
+						break;
+					}
+
+					if (tick_3 > 100)
+						tick_3 = 0;
+				}
+			}
+
+		}
+		tick_3++;
+	 } 
 }

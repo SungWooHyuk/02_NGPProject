@@ -11,23 +11,18 @@
 #define BUTTONCNT 2 // 버튼 개수
 #define MAXCLIENT 3 //플레이어 수  
 
-bool keyLayout[256]{}; // 키보드 레이아웃인데 이거 사실 없어도되긴해,,,, 내가 코드를 너무 못짰다
-bool isJump = false; // 점프 체크
-bool isGameOver = false; // gameover 화면 보여주기위한것 
-bool stage1Clear = false; //1라운드 미션 성공 여부   
-bool randomCheck[FLOORCNT]{ false, }; // 동일한위치에 없도록하게 중복 없이 
-bool isPatternClear[PATTERNCNT]{ false, }; //패턴 5개를 다 획득했는지 알려주기 위한 것
-
-static int jumpCnt = 0; // 더블 점프 체크 
-static float gravity = 0.025f; // 중력값
-static float dropSpeed = 0.f; // 떨어지는 값
-static float FiredropSpeed[FIRECNT]{ 0.f }; // 세로 불 떨어지는 값 - 지금 가로가 멈췄다 빨라졌다 하는게 그냥 이거 공통으로 줘서 그런거고 가로불도 세로불처럼 할 수 있음.
-static float Firegravity[FIRECNT]{ 0.01f, 0.015f, 0.02f, 0.025f }; // 불 중력값 다 다르게 주려고
-static float moveSpeed = 1.f; // 좌 우 움직임 스피드
+bool keyLayout[256]{};
 unsigned int timelap{}; // 시간측정을 위한 변수
 bool gamestart = false;
-short gamemodestate = 0; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어
-bool visible = false; // 초기값은 문 안보이게, 문양 다 먹게되면 true로
-short currentclientcnt = 0; // 현재 접속한 클라이언트 개수
+bool doorvisible = false; // 초기값은 문 안보이게, 문양 다 먹게되면 true로
 int CurrentPlayerid =0; //해당client의 아이디값 
-bool isButtonDown = true;
+
+short my_id; // 내 아이디
+bool GameStart = false; 
+bool doorcheck[3] = { false,false,false }; 
+bool isJumpCheck[3] = { false,false,false }; 
+bool firstbuttoncheck[3] = { false,false,false }; 
+bool secondbuttoncheck[3] = { false,false,false };
+short gamemodestate = 3; // 0일때는 기존 배경, 1일때는 게임 오버 , 2일때는 게임 클리어, 3일땐 로비
+int tick_3 = 0; 
+

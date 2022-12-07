@@ -5,6 +5,7 @@
 #include "Object.h" 
 #include "Player.h" 
 #include "protocol.h" 
+#include "resource.h"
 
 Player playerStatus[MAXCLIENT]; // 플레이어 상태       
 Object floorStatus[FLOORCNT]; // 바닥상태    
@@ -18,4 +19,3 @@ Object doorstatus; //문의 상태
 
 OBJECT_UPDATE_PACKET update_info; //업데이트되는 모든 내용 
 KEYINPUT_PAKCET keyinput_info; //플레이어가 입력한 키 값을 server로 넘겨줌 
-void State(); // 지금 모든 오브젝트들 상태를 이 함수에서 변경 
