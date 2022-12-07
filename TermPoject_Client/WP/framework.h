@@ -5,6 +5,7 @@
 #include "Object.h" 
 #include "Player.h" 
 #include "protocol.h" 
+#include "resource.h"
 
 Player playerStatus[MAXCLIENT]; // 플레이어 상태       
 Object floorStatus[FLOORCNT]; // 바닥상태    
