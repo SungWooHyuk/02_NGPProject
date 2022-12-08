@@ -413,6 +413,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_DESTROY: // 파괴될때 불려지는곳
 		KillTimer(hWnd, 1);
+		closesocket(sock);
 		PostQuitMessage(0);
 		DeleteObject(SelectObject(memdc1, hBitmap1));
 		DeleteDC(memdc1);
