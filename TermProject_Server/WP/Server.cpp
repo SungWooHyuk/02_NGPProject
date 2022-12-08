@@ -210,12 +210,6 @@ int main(int argc, char* argv[])
 
 			++cnt;
 		}
-		//if (cnt == 3) 논블로킹
-		//{
-		//	u_long flag = 1;
-		//	ioctlsocket(listen_sock, FIONBIO, &flag);
-		//}
-
 	}
 
 	DeleteCriticalSection(&cs);
@@ -728,9 +722,6 @@ void PlayerReset(short current_Id)
 	timelap -= 2;
 	LeaveCriticalSection(&cs); 
 }
- 
-int m_fFPS; 
-int k = 0; 
 
 void UpdateFPS() 
 {
@@ -747,19 +738,13 @@ void UpdateFPS()
 
 	if (TimeElapsed >= 1.0f)
 	{
-		m_fFPS = (float)FrameCnt / TimeElapsed;
 		TimeElapsed = 0.0f;
 		FrameCnt = 0;
-		k = 0;
 		EnterCriticalSection(&cs);
 		timelap -= 1;
 		LeaveCriticalSection(&cs);
 	}
-	if (k == 0)
-	{
-		cout << "FPS : " << m_fFPS << endl;
-		k++;
-	}
+
 	lastTime = currTime;
 }
 
